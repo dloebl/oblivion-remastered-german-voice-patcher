@@ -4,7 +4,7 @@
 - Some voices might not play at all right now. This will be improved in a future version as well
 - The build process is quite slow right now (some parts are still very inefficent)
 - Lipsync still uses the English version
-- Further development of this mod will take place on GitHub and mirrored to Nexus Mods: https://github.com/dloebl/voxmeld
+- Further development of this mod will take place here on GitHub and mirrored to Nexus Mods: https://www.nexusmods.com/oblivionremastered/mods/1092
 
 # Requirements
 1. Install the Audiokinetic Wwise Launcher: https://www.audiokinetic.com/en/wwise/overview/. You'll have to create an Audiokinetic account for this. The free trial version is sufficient - you don't have to purchase a license for this to work
