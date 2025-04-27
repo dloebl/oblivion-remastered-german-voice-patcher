@@ -22,6 +22,6 @@ cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%\MP3s\*"
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
 .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
 :: Final step. Build the mod PAK file
-cmd /c .\scripts\create_pak.bat german-voices-oblivion-remastered-voxmeld_v0.1.0_P\
+cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v0.1.0_P\"
 pause
 exit
