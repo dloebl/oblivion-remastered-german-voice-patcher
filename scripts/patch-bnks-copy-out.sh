@@ -1,7 +1,7 @@
 #!/bin/bash
 # this is there the new BNKs go
-mkdir -p "german-voices-oblivion-remastered-voxmeld_v0.1.0_P/Content/WwiseAudio/Event/English(US)/"
+mkdir -p "german-voices-oblivion-remastered-voxmeld_v0.2.0_P/Content/WwiseAudio/Event/English(US)/"
 # this is there the new WEMs go
-mkdir -p "german-voices-oblivion-remastered-voxmeld_v0.1.0_P/Content/WwiseAudio/Media/English(US)/"
+mkdir -p "german-voices-oblivion-remastered-voxmeld_v0.2.0_P/Content/WwiseAudio/Media/English(US)/"
 # loop over all WEMs that we managed to convert to
 find sound2wem/Windows/ -name "*.wem" | sed "s/\.wem$//" | xargs -P 64 -I {} ./voxmeld/voxmeld.exe {}
