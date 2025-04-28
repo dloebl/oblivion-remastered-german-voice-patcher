@@ -20,8 +20,6 @@ set TMP_DIR=%CD%\tmp\
 set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
 %UNREAL_PAK_EXE% -Extract %OBRE_PAK% %CD%\tmp\pak\
 :: Copy all MP3s to the MP3 to WEM input folder
-ren "tmp\sound\voice\oblivion.esm\dunkler verf*" dark_seducer
-ren "tmp\sound\voice\oblivion.esm\goldener heiliger" golden_saint
 .\busybox\busybox.exe bash scripts\change-prefix-move-mp3s.sh
 :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
 set TMP_DIR=%CD%\tmp\

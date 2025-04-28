@@ -9,6 +9,9 @@ mv tmp/sound/voice/knights.esp/argonier tmp/sound/voice/knights.esp/argonian
 mv tmp/sound/voice/knights.esp/hochelf tmp/sound/voice/knights.esp/high_elf
 mv tmp/sound/voice/knights.esp/kaiserlicher tmp/sound/voice/knights.esp/imperial
 mv tmp/sound/voice/knights.esp/rothwardone tmp/sound/voice/knights.esp/redguard
+# Same for Shivering Isles DLC
+mv tmp/sound/voice/oblivion.esm/dunkler* tmp/sound/voice/oblivion.esm/dark_seducer
+mv tmp/sound/voice/oblivion.esm/goldener* tmp/sound/voice/oblivion.esm/golden_saint
 
 # copy all audio files to the MP3 to WEM input folder
 mkdir -p tmp/MP3s/
