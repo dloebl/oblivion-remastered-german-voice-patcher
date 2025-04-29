@@ -8,6 +8,4 @@ do
 		# No bnk file was found that matches the name of a remaster bnk file, add missing bnk name to log file
 		echo "${filename}.bnk" >> missing.txt
 	fi
-
-	
 done
