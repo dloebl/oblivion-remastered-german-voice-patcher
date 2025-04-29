@@ -11,19 +11,15 @@ create_alt_copies() {
 
 		# Check if bnk matching the wav name exists 
 		if [ -f "tmp/pak/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_${1}_${2}${prefix}_${event}.bnk" ]; then
-			if [ "$4" != "sound2wem/audiotemp/${1}_${2}${prefix}_${event}.wav" ]; then
-				echo "Found BNK: Play_${1}_${2}${prefix}_${event} -> Duplicate wav..."
-				cp "$4" "sound2wem/audiotemp/${1}_${2}${prefix}_${event}.wav" &
-			else
-				echo "Skipping copy: Source and destination are the same."
-			fi
+			echo "Found BNK: Play_${1}_${2}${prefix}_${event} -> Duplicate wav..."
+			cp "$4" "sound2wem/audiotemp/${1}_${2}${prefix}_${event}.wav" &
 		fi
 	done
 }
 
-# If bnk counterpart is found copy mp3s to the folder with files to convert
-# Also add files for alt races that don't have individual VO 
-for file in sound2wem/audiotemp/*.wav
+# If bnk counterpart is found copy wavs to the final audiotemp folder
+# Also checks and adds duplicates for variants
+for file in sound2wem/audiotempconvert/*.wav
 do
 	filename="${file##*/}"
 	race=$(echo "$filename" | cut -d'_' -f1)

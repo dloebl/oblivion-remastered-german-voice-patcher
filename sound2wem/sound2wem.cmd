@@ -218,30 +218,30 @@ if "%~1"=="" echo [91mError: [95mNo arguments[39m were provided, unable to co
 if not exist "!project!\*" "!wwisePATH!" create-new-project "!project!\!project!.wproj" --quiet
 
 :: ffmpeg conversion
-md audiotemp
+md audiotempconvert
 :: Setting flags
 if not "!bitrate!"=="" set "bitrate=-ar !bitrate! "
 if not "!channels!"=="" set "channels=-ac !channels! "
 if not "!volume!"=="" set volume=-filter:a "volume=!volume!" 
 if not "!extra!"=="" set "extra=!extra! " 
 :: Convert audio files to (.wav) using preferred user settings, to then convert with Wwise.
-for %%a in (%*)do "!ffmpeg!" -hide_banner -loglevel warning -i %%a !bitrate!!channels!!volume!!extra!"audiotemp\%%~na.wav"
+for %%a in (%*)do "!ffmpeg!" -hide_banner -loglevel warning -i %%a !bitrate!!channels!!volume!!extra!"audiotempconvert\%%~na.wav"
 
 :: Create wsources file for Wwise conversion. See [?5] to view the format more clearly.
 if exist "list.wsources" del /q /f "list.wsources"
 (
 echo ^<?xml version="1.0" encoding="UTF-8"?^>
-echo ^<ExternalSourcesList SchemaVersion="1" Root="!cd!\audiotemp"^>
+echo ^<ExternalSourcesList SchemaVersion="1" Root="!cd!\audiotempconvert"^>
 ) > "list.wsources"
-for /f "tokens=* delims=" %%a in ('dir audiotemp /b ')do echo 	^<Source Path="%%a" Conversion="!conversion!"/^>>> "list.wsources"
+for /f "tokens=* delims=" %%a in ('dir audiotempconvert /b ')do echo 	^<Source Path="%%a" Conversion="!conversion!"/^>>> "list.wsources"
 echo ^</ExternalSourcesList^>>> "list.wsources"
 if "!out!"=="" set "out=!cd!"
 "!wwisePATH!" convert-external-source "!project!\!project!.wproj" --source-file "!cd!\list.wsources" --output "!out!" --quiet
-::for %%a in (%*)do del /f /q "audiotemp\%%~na.akd"
-::for %%a in (%*)do del /f /q "audiotemp\%%~na.wav"
+::for %%a in (%*)do del /f /q "audiotempconvert\%%~na.akd"
+::for %%a in (%*)do del /f /q "audiotempconvert\%%~na.wav"
 ::move "!cd!\Windows\*" "!cd!" >nul
 ::rmdir /s /q "!out!\Windows"
-::rmdir /q "audiotemp"
+::rmdir /q "audiotempconvert"
 del /f /q list.wsources
 :: No we did not just delete Windows, do not worry. Funny naming sense, Audiokinetic.
 echo [38;5;35mDone.[39m

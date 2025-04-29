@@ -40,6 +40,8 @@ set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
 :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
 set TMP_DIR=%CD%\tmp\
 cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%\MP3s\*"
+
+mkdir sound2wem\audiotemp\
 :: Duplicate wav files if variant exists
 .\busybox\busybox.exe bash scripts\duplicate-wavs-altraces-variants.sh
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
