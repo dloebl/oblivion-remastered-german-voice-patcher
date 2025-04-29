@@ -41,12 +41,12 @@ set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
 set TMP_DIR=%CD%\tmp\
 cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%\MP3s\*"
 
-mkdir sound2wem\audiotemp\
-:: Duplicate wav files if variant exists
-.\busybox\busybox.exe bash scripts\duplicate-wavs-altraces-variants.sh
+mkdir sound2wem\WindowsFinal\
+:: Duplicate wem files if variant exists
+.\busybox\busybox.exe bash scripts\duplicate-wems-altraces-variants.sh
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
 .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
-:: Rename .bsa files of remaster so folders are used
+:: Rename .bsa files of remaster so extract folder can be used
 rename "%VOICES_1_BSA_OBRE%" "Oblivion - Voices1_bak.bsa"
 rename "%VOICES_2_BSA_OBRE%" "Oblivion - Voices2_bak.bsa"
 rename "%SHIVERING_ISLES_BSA_OBRE%" "DLCShiveringIsles - Voices_bak.bsa"
