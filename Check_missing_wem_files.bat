@@ -2,7 +2,7 @@
 
 
 :: Check for bnks without mp3 counterpart
-.\busybox\busybox.exe bash scripts\check-missing-mp3s.sh
+.\busybox\busybox.exe bash scripts\check-missing-wems.sh
 
 pause
 exit
