@@ -13,35 +13,20 @@ mv tmp/sound/voice/knights.esp/rothwardone tmp/sound/voice/knights.esp/redguard
 mv tmp/sound/voice/oblivion.esm/dunkler* tmp/sound/voice/oblivion.esm/dark_seducer
 mv tmp/sound/voice/oblivion.esm/goldener* tmp/sound/voice/oblivion.esm/golden_saint
 
-# Check if bnk with matching prefix exists and copy to the MP3 to WEM input folder
-check_and_copy_mp3() {
-	filename="${3##*/}"
-	filename="${filename%.mp3}"
-	counter=0
-	
-    echo "Check: ${1}_${2}_${3}..."
-	
-	# Check for normal, altvoice and beggar variant
-	for prefix in "" "_altvoice" "_beggar"
+# Check if remaster .bsa extract folder includes mp3 or variant of mp3 and replace it with german version
+# This should fix cut off dialogs
+# Vars: 1. Dlc prefix, 2. Race prefix, 3. Gender prefix, 4. File
+check_and_copy_remaster_bsa() {
+	for prefix in "" "/altvoice" "/beggar"
 	do
-		# Check if bnk matching the mp3s name exists to prevent unused mp3 copies
-		if [ -f "tmp/pak/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_${1}_${2}${prefix}_${filename}.bnk" ]; then
-			echo "Found BNK: (${1}_${2}${prefix}_${3}) -> Copy MP3..."
-			cp "$4" "tmp/MP3s/${1}_${2}${prefix}_${3}" &
-		else
-			counter=$((counter + 1))
+		# Check if remaster .bsa extract includes the mp3s or a variant of it
+		if [ -f "german-voices-oblivion-remastered-voxmeld_v0.2.2_P/sound/voice/${1}/${2}/${3}${prefix}/${4##*/}" ]; then
+			echo "Copy variant: ${1}/${2}/${3}${prefix}/${4##*/}..."
+			cp "$4" "german-voices-oblivion-remastered-voxmeld_v0.2.2_P/sound/voice/${1}/${2}/${3}${prefix}/${4##*/}" &
 		fi
 	done
-	
-	# Check if mp3 was used, write to log file if not
-	if [ "$counter" -eq 3 ]; then
-		echo "No matching bnk found!"
-		echo "${1}_${2}_${3}" >> notused.txt
-	fi
 }
 
-# If bnk counterpart is found copy mp3s to the folder with files to convert
-# Also add files for alt races that don't have individual VO 
 mkdir -p tmp/MP3s/
 for dlc in tmp/sound/voice/*
 do
@@ -51,23 +36,27 @@ do
 		do
 			for file in $variant/*.mp3
 			do
-				# Check if mp3 has bnk counterpart
-				check_and_copy_mp3 "${race##*/}" "${variant##*/}" "${file##*/}" "$file"
+				# Copy file to convert folder
+				echo "Copy: ${race##*/}_${variant##*/}_${file##*/}..."
+				cp "$file" "tmp/MP3s/${race##*/}_${variant##*/}_${file##*/}" &
+
+				# Check for alternative variants and copy them to .bsa extract folder
+				check_and_copy_remaster_bsa "${dlc##*/}" "${race##*/}" "${variant##*/}" "$file" 
 				
-				# Check if mp3 has alternative race bnk counterpart
+				# Check if mp3 has alternative race
 				case "${race##*/}" in
                     "argonian")
-                        check_and_copy_mp3 "khajiit" "${variant##*/}" "${file##*/}" "$file"
+						check_and_copy_remaster_bsa "${dlc##*/}" "khajiit" "${variant##*/}" "$file" 
                         ;;
                     "high_elf")
-                        check_and_copy_mp3 "dark_elf" "${variant##*/}" "${file##*/}" "$file"
-                        check_and_copy_mp3 "wood_elf" "${variant##*/}" "${file##*/}" "$file"
+						check_and_copy_remaster_bsa "${dlc##*/}" "dark_elf" "${variant##*/}" "$file" 
+						check_and_copy_remaster_bsa "${dlc##*/}" "wood_elf" "${variant##*/}" "$file" 
                         ;;
                     "imperial")
-                        check_and_copy_mp3 "breton" "${variant##*/}" "${file##*/}" "$file"
+						check_and_copy_remaster_bsa "${dlc##*/}" "breton" "${variant##*/}" "$file" 
                         ;;
                     "nord")
-                        check_and_copy_mp3 "orc" "${variant##*/}" "${file##*/}" "$file"
+						check_and_copy_remaster_bsa "${dlc##*/}" "orc" "${variant##*/}" "$file" 
                         ;;
                     *)
                         ;;
@@ -76,5 +65,3 @@ do
 		done
 	done
 done
-
-wait
