@@ -22,8 +22,8 @@ set RESULT_FOLDER_PAK=ModFiles\Oblivion Remastered\OblivionRemastered\Content\Pa
 
 :: Create folders for temp files and final mod files
 mkdir tmp\
-mkdir %RESULT_FOLDER_DATA%\
-mkdir %RESULT_FOLDER_PAK%\
+mkdir "%RESULT_FOLDER_DATA%\"
+mkdir "%RESULT_FOLDER_PAK%\"
 
 :: Extract the remaster .bsa files with VO
 .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
