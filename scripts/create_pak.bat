@@ -1,4 +1,4 @@
-call paths.bat
+call "%~dp0..\paths.bat"
 set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
 @setlocal ENABLEDELAYEDEXPANSION
 @if "%~1"=="" goto skip

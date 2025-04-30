@@ -1,5 +1,5 @@
 chcp 1252
-call paths.bat
+call "%~dp0paths.bat"
 
 set VOICES_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices1.bsa
 set VOICES_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices2.bsa
