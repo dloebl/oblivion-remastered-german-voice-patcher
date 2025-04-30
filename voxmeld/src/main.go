@@ -18,10 +18,48 @@ func main() {
 	}
 	wemPath := os.Args[1]
 	comps := strings.Split(filepath.Base(wemPath), "_")
+
+	// File is audio for video
+	if len(comps) < 2 {
+		videoAudio := comps[0]
+		// TODO: Match bik to wems
+		var mappingTable = map[string]string{
+			"abc":    "abc",
+		}
+		
+		if newName, exists := mappingTable[videoAudio]; exists {
+			// Umbenennen und in den Zielordner kopieren
+			log.Printf("Found mapping entry for '%s'.", videoAudio)
+
+			outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.1_P/Content/WwiseAudio/Media/English(US)/" + newName + ".wem"
+			wem, err := os.ReadFile(wemPath)
+			if err != nil {
+				log.Fatalf("Error while reading .wem file: %v\n", err)
+			}
+
+			// Move video audio to media folder
+			err = os.WriteFile(outWemPath, wem, 0644)
+			if err != nil {
+				log.Fatalf("Error while writing .wem file: %v\n", err)
+			}
+		} else {
+			log.Printf("Could not find mapping entry for '%s'.", videoAudio)
+		}
+
+		return
+	}
+
+	raceComb := comps[0]
+
+	// Case for high_elf as it has an underscore in its name
+	if comps[1] == "elf" {
+		raceComb += "_" + comps[1]
+	}
+
 	var races []string
 	var variants []string
-	races = append(races, comps[0])
-	switch comps[0] {
+	races = append(races, raceComb)
+	switch raceComb {
 	case "argonian":
 		races = append(races, "khajiit")
 		break
@@ -42,16 +80,26 @@ func main() {
 
 	for _, race := range races {
 		for _, variant := range variants {
-			bnkName := race + "_" + comps[1] + "_"
+			variantComp := comps[1]
+			restComp := strings.Join(comps[2:], "_")
+			// Case for high_elf as it has an underscore in its name
+			if comps[1] == "elf" {
+				variantComp = comps[2]
+				restComp = strings.Join(comps[3:], "_")
+			}
+
+			bnkName := race + "_" + variantComp + "_"
 			if variant != "" {
 				bnkName += variant + "_"
 			}
-			bnkName += strings.Join(comps[2:], "_")
+			bnkName += restComp
 			bnkPath := "tmp/pak/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_" + bnkName + ".bnk"
+			log.Println("File:", bnkPath)
 
 			bnk, err := os.ReadFile(bnkPath)
 			if err != nil {
-				panic(err)
+				log.Printf("Skipping missing BNK: %s (err: %v)", bnkPath, err)
+				continue
 			}
 
 			pattern := []byte{0x01, 0x00, 0x14, 0x00}  // Codec: OPUS_WEM
@@ -93,7 +141,7 @@ func main() {
 			}
 			binary.LittleEndian.PutUint32(bnk[fileSizeOffset:fileSizeOffset+4], wemSize)
 			// write the modified .bnk file to the output folder
-			outBnkPath := "german-voices-oblivion-remastered-voxmeld_v0.3.0_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
+			outBnkPath := "german-voices-oblivion-remastered-voxmeld_v0.3.1_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
 			err = os.WriteFile(outBnkPath, bnk, 0644)
 			if err != nil {
 				log.Fatalf("Failed to write modified .bnk file: %v\n", err)
@@ -104,7 +152,7 @@ func main() {
 			if err != nil {
 				log.Fatalf("Failed to read .wem file: %v\n", err)
 			}
-			outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.0_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
+			outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.1_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
 			err = os.WriteFile(outWemPath, wem, 0644)
 			if err != nil {
 				log.Fatalf("Failed to write .wem file: %v\n", err)

@@ -45,7 +45,7 @@ func main() {
 	fmt.Printf("ID:         %d\n", id)
 	fmt.Printf("File Size:  %d bytes\n", fileSize)
 	*/
-	wemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.0_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
+	wemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.1_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
 	// Get size of the .wem file
 	wemInfo, err := os.Stat(wemPath)
 	if err != nil {
@@ -61,7 +61,7 @@ func main() {
 	}
 	binary.LittleEndian.PutUint32(bnk[fileSizeOffset:fileSizeOffset+4], wemSize)
 	// write the modified .bnk file to the output folder
-	outBnkPath := "german-voices-oblivion-remastered-voxmeld_v0.3.0_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
+	outBnkPath := "german-voices-oblivion-remastered-voxmeld_v0.3.1_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
 	err = os.WriteFile(outBnkPath, bnk, 0644)
 	if err != nil {
 		log.Fatalf("Failed to write modified .bnk file: %v\n", err)
