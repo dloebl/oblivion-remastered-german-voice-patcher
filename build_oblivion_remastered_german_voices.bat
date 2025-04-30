@@ -12,15 +12,15 @@ set SHIVERING_ISLES_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCShiveringIsles
 set KNIGHTS_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\Knights.bsa
 
 :: Optional DLC
-:: set DLC_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCHorseArmor.bsa
-:: set DLC_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCOrrery.bsa
-:: set DLC_3_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCThievesDen.bsa
-:: set DLC_4_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCVilelair.bsa
+set DLC_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCHorseArmor.bsa
+set DLC_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCOrrery.bsa
+set DLC_3_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCThievesDen.bsa
+set DLC_4_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCVilelair.bsa
 
-:: set DLC_1_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCHorseArmor.bsa
-:: set DLC_2_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCOrrery.bsa
-:: set DLC_3_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCThievesDen.bsa
-:: set DLC_4_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCVilelair.bsa
+set DLC_1_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCHorseArmor.bsa
+set DLC_2_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCOrrery.bsa
+set DLC_3_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCThievesDen.bsa
+set DLC_4_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCVilelair.bsa
 
 if exist "%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak" (
     :: Steam Version
@@ -51,22 +51,22 @@ set TMP_DIR=%CD%\tmp\
 .\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_ORIGINAL%" tmp\ -mt
 
 :: Check for optional dlc
-:: if exist "%DLC_1_BSA_ORIGINAL%" (
-::     .\BSArch\BSArch.exe unpack "%DLC_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-::     .\BSArch\BSArch.exe unpack "%DLC_1_BSA_ORIGINAL%" tmp\ -mt
-:: )
-:: if exist "%DLC_2_BSA_ORIGINAL%" (
-::     .\BSArch\BSArch.exe unpack "%DLC_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-::     .\BSArch\BSArch.exe unpack "%DLC_2_BSA_ORIGINAL%" tmp\ -mt
-:: )
-:: if exist "%DLC_3_BSA_ORIGINAL%" (
-::     .\BSArch\BSArch.exe unpack "%DLC_3_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-::    .\BSArch\BSArch.exe unpack "%DLC_3_BSA_ORIGINAL%" tmp\ -mt
-:: )
-:: if exist "%DLC_4_BSA_ORIGINAL%" (
-::     .\BSArch\BSArch.exe unpack "%DLC_4_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-::     .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" tmp\ -mt
-:: )
+if exist "%DLC_1_BSA_ORIGINAL%" (
+    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_ORIGINAL%" tmp\ -mt
+)
+if exist "%DLC_2_BSA_ORIGINAL%" (
+    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_ORIGINAL%" tmp\ -mt
+)
+if exist "%DLC_3_BSA_ORIGINAL%" (
+    .\BSArch\BSArch.exe unpack "%DLC_3_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+   .\BSArch\BSArch.exe unpack "%DLC_3_BSA_ORIGINAL%" tmp\ -mt
+)
+if exist "%DLC_4_BSA_ORIGINAL%" (
+    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" tmp\ -mt
+)
 :: Extract the BNKs from the OblivionRemastered-Windows.pak
 set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
 "%UNREAL_PAK_EXE%" -Extract "%OBRE_PAK%" "%CD%\tmp\pak"
