@@ -1,0 +1,7 @@
+{
+    "maxConcurrentConversions": 6,
+    "wwisePath": "",
+    "ffmpegPath": "",
+    "projectName": "wavtowemscript",
+    "conversion": "Vorbis Quality High"
+}

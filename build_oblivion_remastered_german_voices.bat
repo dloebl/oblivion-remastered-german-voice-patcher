@@ -40,10 +40,10 @@ set TMP_DIR=%CD%\tmp\
 set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
 "%UNREAL_PAK_EXE%" -Extract "%OBRE_PAK%" %CD%\tmp\pak\
 :: Copy all MP3s to the MP3 to WEM input folder and bsa extract folders
-.\busybox\busybox.exe bash scripts\change-prefix-move-mp3s.sh
+.\voxmeld\change-prefix-move-mp3s.exe
 :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
 set TMP_DIR=%CD%\tmp\
-cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%\MP3s\*" "%DIRECTORY_ORIGINAL%\Video\*"
+.\sound2wem\sound2wem.exe "%TMP_DIR%\MP3s\*" "%DIRECTORY_ORIGINAL%\Video\*"
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
 .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
 :: Final step. Build the mod PAK file
