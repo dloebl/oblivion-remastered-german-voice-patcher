@@ -20,9 +20,9 @@ check_and_copy_remaster_bsa() {
 	for prefix in "" "/altvoice" "/beggar"
 	do
 		# Check if remaster .bsa extract includes the mp3s or a variant of it
-		if [ -f "ModFiles/Oblivion Remastered/OblivionRemastered/Content/Dev/ObvData/Data/sound/voice/${1}/${2}/${3}${prefix}/${4##*/}" ]; then
+		if [ -f "tmp/ModFiles/Oblivion Remastered/OblivionRemastered/Content/Dev/ObvData/Data/sound/voice/${1}/${2}/${3}${prefix}/${4##*/}" ]; then
 			echo "Copy variant: ${1}/${2}/${3}${prefix}/${4##*/}..."
-			cp "$4" "ModFiles/Oblivion Remastered/OblivionRemastered/Content/Dev/ObvData/Data/sound/voice/${1}/${2}/${3}${prefix}/${4##*/}" &
+			cp "$4" "tmp/ModFiles/Oblivion Remastered/OblivionRemastered/Content/Dev/ObvData/Data/sound/voice/${1}/${2}/${3}${prefix}/${4##*/}" &
 		fi
 	done
 }
