@@ -16,7 +16,7 @@ https://discord.gg/mvvR3SqVHV
 3. Install the Unreal Engine 5 through the Epic Games Store launcher. This is required to unpack the .pak file from Oblivion Remastered
 
 # Build steps
-1. Update the four paths at the beginning of the .bat file with the updated ones from the requirements that you just installed
+1. Update the three paths at the beginning of the .bat file with the updated ones from the requirements that you just installed
 2. Run the .bat script
 3. Be patient. It takes about 60 minutes to build this mod.
 4. Some errors like "panic: open [..]/Event/English(US)/Play_*.bnk are expected and just mean that a German voice file couldn't be mapped to a BNK
