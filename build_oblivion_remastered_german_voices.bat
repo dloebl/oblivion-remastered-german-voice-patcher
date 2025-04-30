@@ -72,6 +72,9 @@ set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
 "%UNREAL_PAK_EXE%" -Extract "%OBRE_PAK%" "%CD%\tmp\pak"
 :: Copy all MP3s to the MP3 to WEM input folder and bsa extract folders
 .\busybox\busybox.exe bash scripts\change-prefix-move-mp3s.sh
+:: Copy intro and outro
+copy "%DIRECTORY_ORIGINAL%\Video\OblivionIntro.bik" "%TMP_DIR%\MP3s\205096107.bik"
+:: copy "%DIRECTORY_ORIGINAL%\Video\OblivionOutro.bik" "%TMP_DIR%\MP3s\PlaceholderOutro.bik"
 :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
 set TMP_DIR=%CD%\tmp\
 cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%\MP3s\*" "%DIRECTORY_ORIGINAL%\Video\*"

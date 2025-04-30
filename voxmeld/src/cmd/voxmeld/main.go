@@ -22,27 +22,19 @@ func main() {
 	// File is audio for video
 	if len(comps) < 2 {
 		videoAudio := comps[0]
-		// TODO: Match bik to wems
-		var mappingTable = map[string]string{
-			"OblivionIntro": "205096107",
-		}
 		
-		if newName, exists := mappingTable[videoAudio]; exists {
-			log.Printf("Found mapping entry for '%s'.", videoAudio)
+		log.Printf("Found mapping entry for '%s'.", videoAudio)
 
-			outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.2_P/Content/WwiseAudio/Media/English(US)/" + newName + ".wem"
-			wem, err := os.ReadFile(wemPath)
-			if err != nil {
-				log.Fatalf("Error while reading .wem file: %v\n", err)
-			}
+		outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.2_P/Content/WwiseAudio/Media/English(US)/" + videoAudio + ".wem"
+		wem, err := os.ReadFile(wemPath)
+		if err != nil {
+			log.Fatalf("Error while reading .wem file: %v\n", err)
+		}
 
-			// Move video audio to media folder
-			err = os.WriteFile(outWemPath, wem, 0644)
-			if err != nil {
-				log.Fatalf("Error while writing .wem file: %v\n", err)
-			}
-		} else {
-			log.Printf("Could not find mapping entry for '%s'.", videoAudio)
+		// Move video audio to media folder
+		err = os.WriteFile(outWemPath, wem, 0644)
+		if err != nil {
+			log.Fatalf("Error while writing .wem file: %v\n", err)
 		}
 
 		return
