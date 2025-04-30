@@ -225,7 +225,7 @@ if not "!channels!"=="" set "channels=-ac !channels! "
 if not "!volume!"=="" set volume=-filter:a "volume=!volume!" 
 if not "!extra!"=="" set "extra=!extra! " 
 :: Convert audio files to (.wav) using preferred user settings, to then convert with Wwise.
-for %%a in (%*)do "!ffmpeg!" -hide_banner -loglevel warning -i %%a !bitrate!!channels!!volume!!extra!"audiotemp\%%~na.wav"
+for %%a in (%*)do "!ffmpeg!" -hide_banner -loglevel warning -i "%%a" !bitrate!!channels!!volume!!extra!"audiotemp\%%~na.wav"
 
 :: Create wsources file for Wwise conversion. See [?5] to view the format more clearly.
 if exist "list.wsources" del /q /f "list.wsources"
