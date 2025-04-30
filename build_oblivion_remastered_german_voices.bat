@@ -2,9 +2,10 @@ chcp 1252
 :: ATTENTION:
 :: PLEASE UPDATE THE BELOW SECTION WITH YOUR PATHS TO THE GAME FILES AND THE PATH TO THE UNREAL ENGINE 5 BINARIES
 :: ALL THREE PATHS HAVE TO BE UPDATED IN ORDER FOR THIS SCRIPT TO WORK
-set DIRECTORY_ORIGINAL=D:\SteamLibrary\steamapps\common\Oblivion\Data
-set DIRECTORY_OBRE=D:\SteamLibrary\steamapps\common\Oblivion Remastered\OblivionRemastered\Content
-set UNREAL_BIN_DIR=D:\EpicGames\UE_5.5\Engine\Binaries\Win64
+:: YOU ALSO HAVE TO CHANGE THE PATH TO UNREAL ENGINE IN "create_pak.bat" ASWELL!
+set DIRECTORY_ORIGINAL=F:\Steam\SteamApps\common\Oblivion\Data
+set DIRECTORY_OBRE=F:\Steam\SteamApps\common\Oblivion Remastered\OblivionRemastered\Content
+set UNREAL_BIN_DIR=F:\UE_5.5\Engine\Binaries\Win64
 
 set VOICES_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices1.bsa
 set VOICES_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices2.bsa
@@ -22,15 +23,14 @@ set RESULT_FOLDER_PAK=ModFiles\Oblivion Remastered\OblivionRemastered\Content\Pa
 
 :: Create folders for temp files and final mod files
 mkdir tmp\
-mkdir "tmp\%RESULT_FOLDER_DATA%\"
 mkdir "%RESULT_FOLDER_DATA%\"
 mkdir "%RESULT_FOLDER_PAK%\"
 
 :: Extract the remaster .bsa files with VO
-.\BSArch\BSArch.exe unpack "%VOICES_1_BSA_OBRE%" "tmp\%RESULT_FOLDER_DATA%\" -mt
-.\BSArch\BSArch.exe unpack "%VOICES_2_BSA_OBRE%" "tmp\%RESULT_FOLDER_DATA%\" -mt
-.\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_OBRE%" "tmp\%RESULT_FOLDER_DATA%\" -mt
-.\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_OBRE%" "tmp\%RESULT_FOLDER_DATA%\" -mt
+.\BSArch\BSArch.exe unpack "%VOICES_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+.\BSArch\BSArch.exe unpack "%VOICES_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+.\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+.\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
 :: Extract the original MP3s from all original .bsa voice files
 set TMP_DIR=%CD%\tmp\
 .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_ORIGINAL%" tmp\ -mt
@@ -47,9 +47,7 @@ set TMP_DIR=%CD%\tmp\
 cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%\MP3s\*" "%DIRECTORY_ORIGINAL%\Video\*"
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
 .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
-:: Build the mod PAK file
+:: Final step. Build the mod PAK file
 cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v0.3.1_P\"
-:: Build the new BSA
-./BSArch/BSArch.exe pack "tmp\%RESULT_FOLDER_DATA%" "%CD%\%RESULT_FOLDER_DATA%\german-voices-oblivion-remastered-voxmeld_v0.3.1.bsa" -tes4 -share -mt
 pause
 exit
