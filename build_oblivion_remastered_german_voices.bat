@@ -44,7 +44,7 @@ mkdir "%RESULT_FOLDER_PAK%\"
 .\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
 .\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
 :: Extract the original MP3s from all original .bsa voice files
-set TMP_DIR=%CD%\tmp\
+set TMP_DIR=%CD%\tmp
 .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_ORIGINAL%" tmp\ -mt
 .\BSArch\BSArch.exe unpack "%VOICES_2_BSA_ORIGINAL%" tmp\ -mt
 .\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_ORIGINAL%" tmp\ -mt
@@ -76,8 +76,7 @@ set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
 copy "%DIRECTORY_ORIGINAL%\Video\OblivionIntro.bik" "%TMP_DIR%\MP3s\205096107.bik"
 :: copy "%DIRECTORY_ORIGINAL%\Video\OblivionOutro.bik" "%TMP_DIR%\MP3s\PlaceholderOutro.bik"
 :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
-set TMP_DIR=%CD%\tmp\
-cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%\MP3s\*" "%DIRECTORY_ORIGINAL%\Video\*"
+cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%\MP3s\*"
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
 .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
 :: Final step. Build the mod PAK file
