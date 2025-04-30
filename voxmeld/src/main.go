@@ -28,7 +28,6 @@ func main() {
 		}
 		
 		if newName, exists := mappingTable[videoAudio]; exists {
-			// Umbenennen und in den Zielordner kopieren
 			log.Printf("Found mapping entry for '%s'.", videoAudio)
 
 			outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.1_P/Content/WwiseAudio/Media/English(US)/" + newName + ".wem"
@@ -51,8 +50,8 @@ func main() {
 
 	raceComb := comps[0]
 
-	// Case for high_elf as it has an underscore in its name
-	if comps[1] == "elf" {
+	// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
+	if comps[1] != "f" && comps[1] != "m" {
 		raceComb += "_" + comps[1]
 	}
 
@@ -82,8 +81,8 @@ func main() {
 		for _, variant := range variants {
 			variantComp := comps[1]
 			restComp := strings.Join(comps[2:], "_")
-			// Case for high_elf as it has an underscore in its name
-			if comps[1] == "elf" {
+			// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
+			if comps[1] != "f" && comps[1] != "m" {
 				variantComp = comps[2]
 				restComp = strings.Join(comps[3:], "_")
 			}

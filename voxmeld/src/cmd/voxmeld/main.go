@@ -18,16 +18,47 @@ func main() {
 	}
 	wemPath := os.Args[1]
 	comps := strings.Split(filepath.Base(wemPath), "_")
-	var race = comps[0]
-	// Case for high_elf as it has an underscore in its name
-	if comps[1] == "elf" {
-		race += "_" + comps[1]
+
+	// File is audio for video
+	if len(comps) < 2 {
+		videoAudio := comps[0]
+		// TODO: Match bik to wems
+		var mappingTable = map[string]string{
+			"abc":    "abc",
+		}
+		
+		if newName, exists := mappingTable[videoAudio]; exists {
+			log.Printf("Found mapping entry for '%s'.", videoAudio)
+
+			outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.1_P/Content/WwiseAudio/Media/English(US)/" + newName + ".wem"
+			wem, err := os.ReadFile(wemPath)
+			if err != nil {
+				log.Fatalf("Error while reading .wem file: %v\n", err)
+			}
+
+			// Move video audio to media folder
+			err = os.WriteFile(outWemPath, wem, 0644)
+			if err != nil {
+				log.Fatalf("Error while writing .wem file: %v\n", err)
+			}
+		} else {
+			log.Printf("Could not find mapping entry for '%s'.", videoAudio)
+		}
+
+		return
+	}
+
+	raceComb := comps[0]
+
+	// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
+	if comps[1] != "f" && comps[1] != "m" {
+		raceComb += "_" + comps[1]
 	}
 
 	var races []string
 	var variants []string
-	races = append(races, race)
-	switch race {
+	races = append(races, raceComb)
+	switch raceComb {
 	case "argonian":
 		races = append(races, "khajiit")
 		break
@@ -48,10 +79,10 @@ func main() {
 
 	for _, race := range races {
 		for _, variant := range variants {
-			var variantComp = comps[1]
-			var restComp = strings.Join(comps[2:], "_")
-			// Case for high_elf as it has an underscore in its name
-			if comps[1] == "elf" {
+			variantComp := comps[1]
+			restComp := strings.Join(comps[2:], "_")
+			// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
+			if comps[1] != "f" && comps[1] != "m" {
 				variantComp = comps[2]
 				restComp = strings.Join(comps[3:], "_")
 			}
