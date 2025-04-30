@@ -17,12 +17,15 @@ mv tmp/sound/voice/oblivion.esm/goldener* tmp/sound/voice/oblivion.esm/golden_sa
 # This should fix cut off dialogs
 # Vars: 1. Dlc prefix, 2. Race prefix, 3. Gender prefix, 4. File
 check_and_copy_remaster_bsa() {
+	var2_fixed=$(echo "$2" | tr '_' ' ')
 	for prefix in "" "/altvoice" "/beggar"
 	do
 		# Check if remaster .bsa extract includes the mp3s or a variant of it
-		if [ -f "ModFiles/Oblivion Remastered/OblivionRemastered/Content/Dev/ObvData/Data/sound/voice/${1}/${2}/${3}${prefix}/${4##*/}" ]; then
-			echo "Copy variant: ${1}/${2}/${3}${prefix}/${4##*/}..."
-			cp "$4" "ModFiles/Oblivion Remastered/OblivionRemastered/Content/Dev/ObvData/Data/sound/voice/${1}/${2}/${3}${prefix}/${4##*/}" &
+		if [ -f "ModFiles/Content/Dev/ObvData/Data/sound/voice/${1}/${var2_fixed}/${3}${prefix}/${4##*/}" ]; then
+			echo "Copy variant: ${1}/${var2_fixed}/${3}${prefix}/${4##*/}..."
+			cp "$4" "ModFiles/Content/Dev/ObvData/Data/sound/voice/${1}/${var2_fixed}/${3}${prefix}/${4##*/}" &
+		else
+			echo "${1}/${var2_fixed}/${3}${prefix}/${4##*/}" >> Mp3NotFound.txt
 		fi
 	done
 }
