@@ -55,6 +55,11 @@ if not exist "%RESULT_FOLDER_DATA%\sound" (
     .\BSArch\BSArch.exe unpack "%DLC_3_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
     .\BSArch\BSArch.exe unpack "%DLC_4_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
 
+    :: We only need sound/voice folder 
+    rd /s /q "%RESULT_FOLDER_DATA%\meshes"
+    rd /s /q "%RESULT_FOLDER_DATA%\sound\fx"
+    rd /s /q "%RESULT_FOLDER_DATA%\textures"
+
     if not exist "%RESULT_FOLDER_DATA%\sound" (
         echo Could not find extracted bsa files of Oblivion Remastered
         pause
@@ -62,7 +67,7 @@ if not exist "%RESULT_FOLDER_DATA%\sound" (
     )
 )
 
-if not exist "%~dp0tmp\sound" (
+if not exist "%TMP_DIR%\sound" (
     :: Extract the original MP3s from all original .bsa voice files
     .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_ORIGINAL%" tmp\ -mt
     .\BSArch\BSArch.exe unpack "%VOICES_2_BSA_ORIGINAL%" tmp\ -mt
@@ -70,15 +75,20 @@ if not exist "%~dp0tmp\sound" (
     .\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_ORIGINAL%" tmp\ -mt
     
     :: Optional: DLCs
-    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_ORIGINAL%" tmp\ -mt
-    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_ORIGINAL%" tmp\ -mt
-    .\BSArch\BSArch.exe unpack "%DLC_3_BSA_ORIGINAL%" tmp\ -mt
-    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" tmp\ -mt
+    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_ORIGINAL%" "%TMP_DIR%" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_ORIGINAL%" "%TMP_DIR%" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_3_BSA_ORIGINAL%" "%TMP_DIR%" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" "%TMP_DIR%" -mt
 
     :: Custom voice lines
     :: .\BSArch\BSArch.exe unpack "%CUSTOM_BSA%" tmp\ -mt
 
-    if not exist "%~dp0tmp\sound" (
+    :: We only need sound/voice folder 
+    rd /s /q "%TMP_DIR%\meshes"
+    rd /s /q "%TMP_DIR%\sound\fx"
+    rd /s /q "%TMP_DIR%\textures"
+
+    if not exist "%TMP_DIR%\sound" (
         echo ERROR: Could not find extracted .bsa files of Oblivion
         pause
         exit
@@ -90,11 +100,11 @@ mkdir "%TMP_DIR%\MP3s\"
 copy "%DIRECTORY_ORIGINAL%\Video\OblivionIntro.bik" "%TMP_DIR%\MP3s\scripted_intro_play.bik"
 copy "%DIRECTORY_ORIGINAL%\Video\OblivionOutro.bik" "%TMP_DIR%\MP3s\scripted_outro_play.bik"
 
-if not exist "%~dp0tmp\pak" (
+if not exist "%TMP_DIR%\pak" (
     :: Extract the BNKs from the OblivionRemastered-Windows.pak
-    "%UNREAL_BIN_DIR%\UnrealPak.exe" -Extract "%OBRE_PAK%" "%~dp0tmp\pak"
+    "%UNREAL_BIN_DIR%\UnrealPak.exe" -Extract "%OBRE_PAK%" "%TMP_DIR%\pak"
 
-    if not exist "%~dp0tmp\pak" (
+    if not exist "%TMP_DIR%\pak" (
         echo ERROR: Could not find extracted .pak file data of Oblivion Remastered
         pause
         exit
@@ -103,19 +113,22 @@ if not exist "%~dp0tmp\pak" (
 
 :: Check amount of wem files. Below 47000 would mean that most likely files are missing or the code did not run yet
 for /f %%A in ('dir /a-d /b "%~dp0sound2wem\Windows" ^| find /v /c ""') do set AMOUNT_WEM_BEFORE=%%A
-if %AMOUNT_WEM_BEFORE% < 47000 (
+if %AMOUNT_WEM_BEFORE% lss 47000 (
     :: Check amount of mp3 files. Below 47000 would mean that most likely files are missing or the code did not run yet
     for /f %%A in ('dir /a-d /b "%TMP_DIR%\MP3s" ^| find /v /c ""') do set AMOUNT_MP3_BEFORE=%%A
-    if %AMOUNT_MP3_BEFORE% < 47000 (
+    if %AMOUNT_MP3_BEFORE% lss 47000 (
         :: Copy all mp3 files to their respective folders
         .\voxmeld\change-prefix-move-mp3s.exe
 
         for /f %%A in ('dir /a-d /b "%TMP_DIR%\MP3s" ^| find /v /c ""') do set AMOUNT_MP3_AFTER=%%A
-        if %AMOUNT_MP3_AFTER% < 47000 (
+        if %AMOUNT_MP3_AFTER% lss 47000 (
             echo ERROR: Could not copy over .mp3 files correctly
             pause
             exit
             
+        ) else (
+            :: The bsa extract folder won't be needed anymore
+            rd /s /q "%TMP_DIR%\sound"
         )
     )
 
@@ -123,7 +136,7 @@ if %AMOUNT_WEM_BEFORE% < 47000 (
     .\sound2wem\sound2wem.exe "%TMP_DIR%\MP3s\*"
 
     for /f %%A in ('dir /a-d /b "%~dp0sound2wem\Windows" ^| find /v /c ""') do set AMOUNT_WEM_AFTER=%%A
-    if %AMOUNT_WEM_AFTER% < 47000 (
+    if %AMOUNT_WEM_AFTER% lss 47000 (
         echo ERROR: Could not convert .mp3 files correctly
         pause
         exit
@@ -136,12 +149,12 @@ if %AMOUNT_WEM_BEFORE% < 47000 (
 
 :: Check amount of bnk files. Below 47000 would mean that most likely files are missing or the code did not run yet
 for /f %%A in ('dir /a-d /b "%~dp0german-voices-oblivion-remastered-voxmeld_v0.4.1_P\Content\WwiseAudio\Event\English(US)" ^| find /v /c ""') do set AMOUNT_BNK_BEFORE=%%A
-if %AMOUNT_BNK_BEFORE% < 133000 (
+if %AMOUNT_BNK_BEFORE% lss 133000 (
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
     .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
 
     for /f %%A in ('dir /a-d /b "%~dp0german-voices-oblivion-remastered-voxmeld_v0.4.1_P\Content\WwiseAudio\Event\English(US)" ^| find /v /c ""') do set AMOUNT_BNK_AFTER=%%A
-    if %AMOUNT_BNK_AFTER% < 133000 (
+    if %AMOUNT_BNK_AFTER% lss 133000 (
         echo ERROR: Could not create bnk files correctly
         pause
         exit
