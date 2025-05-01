@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +13,10 @@ import (
 	"sync"
 	"time"
 )
+
+// Neuer Logger
+var logger *log.Logger
+var logFile *os.File
 
 type Config struct {
 	WwisePath   string `json:"wwisePath"`
@@ -61,16 +66,49 @@ func loadConfig(execDir string) (*Config, error) {
 	return &config, nil
 }
 
+// Funktion zum Einrichten des Loggings
+func setupLogging() {
+	// Erstelle Log-Verzeichnis, wenn es nicht existiert
+	err := os.MkdirAll("logs", 0755)
+	if err != nil {
+		fmt.Printf("Fehler beim Erstellen des Log-Verzeichnisses: %v\n", err)
+		return
+	}
+
+	// Öffne die Log-Datei
+	logFile, err = os.OpenFile("logs/sound2wem.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Printf("Fehler beim Öffnen der Log-Datei: %v\n", err)
+		return
+	}
+
+	// Initialisiere den Logger
+	logger = log.New(logFile, "", log.LstdFlags)
+	logAndPrint("Logging initialisiert")
+}
+
+// Funktion zum Loggen und gleichzeitigen Ausgeben einer Nachricht
+func logAndPrint(message string) {
+	fmt.Println(message)
+	if logger != nil {
+		logger.Println(message)
+	}
+}
+
 func main() {
+	// Logging einrichten
+	setupLogging()
+	defer logFile.Close()
+
 	if len(os.Args) < 2 {
-		fmt.Println("Fehler: Keine Eingabedateien angegeben")
+		logAndPrint("Fehler: Keine Eingabedateien angegeben")
 		return
 	}
 
 	// Konfiguration laden
 	execDir, err := os.Executable()
 	if err != nil {
-		fmt.Println("Fehler beim Ermitteln des Ausführungsverzeichnisses:", err)
+		logAndPrint(fmt.Sprintf("Fehler beim Ermitteln des Ausführungsverzeichnisses: %v", err))
 		return
 	}
 	execDir = filepath.Dir(execDir)
@@ -84,12 +122,12 @@ func main() {
 	// Wwise Projekt erstellen, falls es nicht existiert
 	projectPath := filepath.Join(execDir, config.ProjectName)
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
-		fmt.Println("Erstelle neues Wwise Projekt...")
+		logAndPrint("Erstelle neues Wwise Projekt...")
 		cmd := exec.Command(config.WwisePath, "create-new-project",
 			filepath.Join(projectPath, config.ProjectName+".wproj"),
 			"--quiet")
 		if err := cmd.Run(); err != nil {
-			fmt.Printf("Fehler beim Erstellen des Wwise Projekts: %v\n", err)
+			logAndPrint(fmt.Sprintf("Fehler beim Erstellen des Wwise Projekts: %v", err))
 			return
 		}
 	}
@@ -104,7 +142,7 @@ func main() {
 	numCPU := runtime.NumCPU()
 	semaphore := make(chan struct{}, numCPU)
 
-	fmt.Printf("Starte Konvertierung mit %d parallelen Prozessen...\n", numCPU)
+	logAndPrint(fmt.Sprintf("Starte Konvertierung mit %d parallelen Prozessen...", numCPU))
 
 	for _, pattern := range os.Args[1:] {
 		matches, _ := filepath.Glob(pattern)
@@ -118,21 +156,21 @@ func main() {
 				outputFile := filepath.Join(tempDir, filepath.Base(inputFile))
 				outputFile = outputFile[:len(outputFile)-len(filepath.Ext(outputFile))] + ".wav"
 				
-				fmt.Printf("Konvertiere: %s -> %s\n", inputFile, filepath.Base(outputFile))
+				logAndPrint(fmt.Sprintf("Konvertiere: %s -> %s", inputFile, filepath.Base(outputFile)))
 				
 				cmd := exec.Command(config.FfmpegPath, "-hide_banner", "-loglevel", "warning", 
 					"-i", inputFile, outputFile)
 				if err := cmd.Run(); err != nil {
-					fmt.Printf("Fehler bei der Konvertierung von %s: %v\n", inputFile, err)
+					logAndPrint(fmt.Sprintf("Fehler bei der Konvertierung von %s: %v", inputFile, err))
 				} else {
-					fmt.Printf("Erfolgreich konvertiert: %s\n", filepath.Base(outputFile))
+					logAndPrint(fmt.Sprintf("Erfolgreich konvertiert: %s", filepath.Base(outputFile)))
 				}
 			}(file)
 		}
 	}
 	wg.Wait()
 
-	fmt.Println("Alle Audio-Dateien konvertiert. Erstelle XML...")
+	logAndPrint("Alle Audio-Dateien konvertiert. Erstelle XML...")
 
 	// WSources XML erstellen
 	sources := ExternalSourcesList{
@@ -152,14 +190,14 @@ func main() {
 	wsourcesPath := filepath.Join(execDir, "list.wsources")
 	xmlData, err := xml.MarshalIndent(sources, "", "  ")
 	if err != nil {
-		fmt.Printf("Fehler beim Erstellen der XML-Daten: %v\n", err)
+		logAndPrint(fmt.Sprintf("Fehler beim Erstellen der XML-Daten: %v", err))
 		os.Exit(1)
 	}
 	os.WriteFile(wsourcesPath, []byte(xml.Header+string(xmlData)), 0644)
 	defer os.Remove(wsourcesPath)
 
 
-	fmt.Println("Starte Wwise Konvertierung...")
+	logAndPrint("Starte Wwise Konvertierung...")
 
 	// Wwise Konvertierung
 	cmd := exec.Command(config.WwisePath, "convert-external-source",
@@ -171,20 +209,20 @@ func main() {
 	// Pipe für die Standardausgabe erstellen
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Printf("Fehler beim Erstellen der Stdout-Pipe: %v\n", err)
+		logAndPrint(fmt.Sprintf("Fehler beim Erstellen der Stdout-Pipe: %v", err))
 		return
 	}
 
 	// Pipe für die Fehlerausgabe erstellen
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		fmt.Printf("Fehler beim Erstellen der Stderr-Pipe: %v\n", err)
+		logAndPrint(fmt.Sprintf("Fehler beim Erstellen der Stderr-Pipe: %v", err))
 		return
 	}
 
 	// Kommando im Hintergrund starten
 	if err := cmd.Start(); err != nil {
-		fmt.Printf("Fehler beim Starten der Wwise Konvertierung: %v\n", err)
+		logAndPrint(fmt.Sprintf("Fehler beim Starten der Wwise Konvertierung: %v", err))
 		return
 	}
 
@@ -223,9 +261,9 @@ func main() {
 	// Auf Beendigung warten
 	if err := cmd.Wait(); err != nil {
 		done <- true
-		fmt.Printf("\n\rFehler bei der Wwise Konvertierung: %v\n", err)
+		logAndPrint(fmt.Sprintf("\n\rFehler bei der Wwise Konvertierung: %v", err))
 	} else {
 		done <- true
-		fmt.Printf("\n\rWwise Konvertierung erfolgreich abgeschlossen!\n")
+		logAndPrint(fmt.Sprintf("\n\rWwise Konvertierung erfolgreich abgeschlossen!"))
 	}
 }
