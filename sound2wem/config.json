@@ -1,5 +1,4 @@
 {
-    "maxConcurrentConversions": 6,
     "wwisePath": "",
     "ffmpegPath": "",
     "projectName": "wavtowemscript",
