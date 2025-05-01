@@ -135,7 +135,7 @@ func main() {
 	// Temporäres Verzeichnis erstellen
 	tempDir := filepath.Join(execDir, "audiotemp")
 	os.MkdirAll(tempDir, 0755)
-	defer os.RemoveAll(tempDir)
+	// defer os.RemoveAll(tempDir)
 
 	// Parallel Audio-Dateien konvertieren
 	var wg sync.WaitGroup
