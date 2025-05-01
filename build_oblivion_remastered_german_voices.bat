@@ -164,5 +164,20 @@ if %AMOUNT_BNK_BEFORE% lss 133000 (
 
 :: Final step. Build the mod PAK file
 cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v0.4.1_P\"
+
+for %%A in ("%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v0.4.1_P.pak") do set size=%%~zA
+
+:: Check if file is bigger than 10 MB
+if %size% GTR 10485760 (
+    echo Die .pak Datei wurde erfolgreich erstellt. Bitte kopiere den ganzen 'Content' Ordner aus dem 'Modfiles' Ordner in dein Spielverzeichnis!
+    :: Delete temporary directories entirely
+    rd /s /q "%TMP_DIR%"
+    rd /s /q "%~dp0\sound2wem\audiotemp"
+    rd /s /q "%~dp0\sound2wem\Windows"
+    rd /s /q "%~dp0\german-voices-oblivion-remastered-voxmeld_v0.4.1_P"
+) else (
+    echo ERROR: The created .pak file is less than 10MB!
+)
+
 pause
 exit
