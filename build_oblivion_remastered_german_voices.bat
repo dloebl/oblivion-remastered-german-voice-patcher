@@ -2,7 +2,6 @@ chcp 1252
 :: ATTENTION:
 :: PLEASE UPDATE THE BELOW SECTION WITH YOUR PATHS TO THE GAME FILES AND THE PATH TO THE UNREAL ENGINE 5 BINARIES
 :: ALL THREE PATHS HAVE TO BE UPDATED IN ORDER FOR THIS SCRIPT TO WORK
-:: YOU ALSO HAVE TO CHANGE THE PATH TO UNREAL ENGINE IN "create_pak.bat" ASWELL!
 set DIRECTORY_ORIGINAL=F:\Steam\SteamApps\common\Oblivion\Data
 set DIRECTORY_OBRE=F:\Steam\SteamApps\common\Oblivion Remastered\OblivionRemastered\Content
 set UNREAL_BIN_DIR=F:\UE_5.5\Engine\Binaries\Win64
@@ -41,13 +40,13 @@ set TMP_DIR=%CD%\tmp\
 set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
 "%UNREAL_PAK_EXE%" -Extract "%OBRE_PAK%" %CD%\tmp\pak\
 :: Copy all MP3s to the MP3 to WEM input folder and bsa extract folders
-.\busybox\busybox.exe bash scripts\change-prefix-move-mp3s.sh
+.\voxmeld\change-prefix-move-mp3s.exe
 :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
 set TMP_DIR=%CD%\tmp\
-cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%\MP3s\*" "%DIRECTORY_ORIGINAL%\Video\*"
+.\sound2wem\sound2wem.exe "%TMP_DIR%\MP3s\*" "%DIRECTORY_ORIGINAL%\Video\*"
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
 .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
 :: Final step. Build the mod PAK file
-cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v0.3.1_P\"
+cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v0.4.0_P\"
 pause
 exit
