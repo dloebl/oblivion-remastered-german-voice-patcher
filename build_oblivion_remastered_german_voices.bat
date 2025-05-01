@@ -5,15 +5,15 @@ call "%~dp0scripts\settings.bat"
 setlocal enabledelayedexpansion
 
 if not exist "%DIRECTORY_ORIGINAL%" (
-    echo Error: Could not find Oblivion with the given path
+    echo ERROR: Could not find Oblivion with the given path
     pause
     exit
 ) else if not exist "%DIRECTORY_OBRE%" (
-    echo Error: Could not find Oblivion Remastered with the given path
+    echo ERROR: Could not find Oblivion Remastered with the given path
     pause
     exit
 ) else if not exist "%UNREAL_BIN_DIR%"(
-    echo Error: Could not find Unreal Engine with the given path
+    echo ERROR: Could not find Unreal Engine with the given path
     pause
     exit
 )
@@ -49,7 +49,7 @@ if exist "%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak" (
     :: Xbox Gamepass Version
     set "OBRE_PAK=%DIRECTORY_OBRE%\Paks\OblivionRemastered-WinGDK.pak"
 ) else (
-    echo Error: Could not find .pak file for Oblivion Remastered
+    echo ERROR: Could not find .pak file for Oblivion Remastered
     pause
     exit
 )
@@ -76,13 +76,14 @@ if not exist "%RESULT_FOLDER_DATA%\sound" (
     .\BSArch\BSArch.exe unpack "%DLC_3_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
     .\BSArch\BSArch.exe unpack "%DLC_4_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
 
-    :: We only need sound/voice folder 
+    :: We only need mp3 files from sound/voice
     rd /s /q "%RESULT_FOLDER_DATA%\meshes"
     rd /s /q "%RESULT_FOLDER_DATA%\sound\fx"
     rd /s /q "%RESULT_FOLDER_DATA%\textures"
+    del /S /Q "%RESULT_FOLDER_DATA%\sound\voice\*.lip"
 
     if not exist "%RESULT_FOLDER_DATA%\sound" (
-        echo Error: Could not find extracted bsa files of Oblivion Remastered
+        echo ERROR: Could not find extracted bsa files of Oblivion Remastered
         pause
         exit
     )
@@ -109,10 +110,11 @@ if not exist "%TMP_DIR%\sound" (
     copy "%DIRECTORY_ORIGINAL%\Video\OblivionIntro.bik" "%TMP_DIR%\MP3s\scripted_intro_play.bik"
     copy "%DIRECTORY_ORIGINAL%\Video\OblivionOutro.bik" "%TMP_DIR%\MP3s\scripted_outro_play.bik"
 
-    :: We only need sound/voice folder 
+    :: We only need mp3 files from sound/voice 
     rd /s /q "%TMP_DIR%\meshes"
     rd /s /q "%TMP_DIR%\sound\fx"
     rd /s /q "%TMP_DIR%\textures"
+    del /S /Q "%TMP_DIR%\sound\voice\*.lip"
 
     if not exist "%TMP_DIR%\sound" (
         echo ERROR: Could not find extracted .bsa files of Oblivion
