@@ -1,6 +1,11 @@
 chcp 1252
 call "%~dp0paths.bat"
 
+setlocal enabledelayedexpansion
+
+set "VERSION_NUMBER=0.4.1"
+set EXECUTE_MP3_DIFF_SCRIPT="true"
+
 set "VOICES_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices1.bsa"
 set "VOICES_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices2.bsa"
 set "SHIVERING_ISLES_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCShiveringIsles - Voices.bsa"
@@ -83,6 +88,11 @@ if not exist "%TMP_DIR%\sound" (
     :: Custom voice lines
     :: .\BSArch\BSArch.exe unpack "%CUSTOM_BSA%" tmp\ -mt
 
+    :: Copy intro and outro
+    mkdir "%TMP_DIR%\MP3s\"
+    copy "%DIRECTORY_ORIGINAL%\Video\OblivionIntro.bik" "%TMP_DIR%\MP3s\scripted_intro_play.bik"
+    copy "%DIRECTORY_ORIGINAL%\Video\OblivionOutro.bik" "%TMP_DIR%\MP3s\scripted_outro_play.bik"
+
     :: We only need sound/voice folder 
     rd /s /q "%TMP_DIR%\meshes"
     rd /s /q "%TMP_DIR%\sound\fx"
@@ -94,11 +104,6 @@ if not exist "%TMP_DIR%\sound" (
         exit
     )
 )
-
-:: Copy intro and outro
-mkdir "%TMP_DIR%\MP3s\"
-copy "%DIRECTORY_ORIGINAL%\Video\OblivionIntro.bik" "%TMP_DIR%\MP3s\scripted_intro_play.bik"
-copy "%DIRECTORY_ORIGINAL%\Video\OblivionOutro.bik" "%TMP_DIR%\MP3s\scripted_outro_play.bik"
 
 if not exist "%TMP_DIR%\pak" (
     :: Extract the BNKs from the OblivionRemastered-Windows.pak
@@ -112,16 +117,28 @@ if not exist "%TMP_DIR%\pak" (
 )
 
 :: Check amount of wem files. Below 47000 would mean that most likely files are missing or the code did not run yet
-for /f %%A in ('dir /a-d /b "%~dp0sound2wem\Windows" ^| find /v /c ""') do set AMOUNT_WEM_BEFORE=%%A
-if %AMOUNT_WEM_BEFORE% lss 47000 (
+set AMOUNT_WEM_BEFORE=0
+if exist "%~dp0sound2wem\Windows" (
+    for /f %%A in ('dir /a-d /b "%~dp0sound2wem\Windows" 2^>nul ^| find /v /c ""') do set AMOUNT_WEM_BEFORE=%%A
+)
+
+if !AMOUNT_WEM_BEFORE! lss 47000 (
     :: Check amount of mp3 files. Below 47000 would mean that most likely files are missing or the code did not run yet
-    for /f %%A in ('dir /a-d /b "%TMP_DIR%\MP3s" ^| find /v /c ""') do set AMOUNT_MP3_BEFORE=%%A
-    if %AMOUNT_MP3_BEFORE% lss 47000 (
+    set AMOUNT_MP3_BEFORE=0
+    if exist "%TMP_DIR%\MP3s" (
+        for /f %%A in ('dir /a-d /b "%TMP_DIR%\MP3s" 2^>nul ^| find /v /c ""') do set AMOUNT_MP3_BEFORE=%%A
+    )
+
+    if !AMOUNT_MP3_BEFORE! lss 47000 (
         :: Copy all mp3 files to their respective folders
         .\voxmeld\change-prefix-move-mp3s.exe
 
-        for /f %%A in ('dir /a-d /b "%TMP_DIR%\MP3s" ^| find /v /c ""') do set AMOUNT_MP3_AFTER=%%A
-        if %AMOUNT_MP3_AFTER% lss 47000 (
+        set AMOUNT_MP3_AFTER=0
+        if exist "%TMP_DIR%\MP3s" (
+            for /f %%A in ('dir /a-d /b "%TMP_DIR%\MP3s" 2^>nul ^| find /v /c ""') do set AMOUNT_MP3_AFTER=%%A
+        )
+
+        if !AMOUNT_MP3_AFTER! lss 47000 (
             echo ERROR: Could not copy over .mp3 files correctly
             pause
             exit
@@ -135,8 +152,12 @@ if %AMOUNT_WEM_BEFORE% lss 47000 (
     :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
     .\sound2wem\sound2wem.exe "%TMP_DIR%\MP3s\*"
 
-    for /f %%A in ('dir /a-d /b "%~dp0sound2wem\Windows" ^| find /v /c ""') do set AMOUNT_WEM_AFTER=%%A
-    if %AMOUNT_WEM_AFTER% lss 47000 (
+    set AMOUNT_WEM_AFTER=0
+    if exist "%~dp0sound2wem\Windows" (
+        for /f %%A in ('dir /a-d /b "%~dp0sound2wem\Windows" 2^>nul ^| find /v /c ""') do set AMOUNT_WEM_AFTER=%%A
+    )
+
+    if !AMOUNT_WEM_AFTER! lss 47000 (
         echo ERROR: Could not convert .mp3 files correctly
         pause
         exit
@@ -148,13 +169,21 @@ if %AMOUNT_WEM_BEFORE% lss 47000 (
 )
 
 :: Check amount of bnk files. Below 47000 would mean that most likely files are missing or the code did not run yet
-for /f %%A in ('dir /a-d /b "%~dp0german-voices-oblivion-remastered-voxmeld_v0.4.1_P\Content\WwiseAudio\Event\English(US)" ^| find /v /c ""') do set AMOUNT_BNK_BEFORE=%%A
-if %AMOUNT_BNK_BEFORE% lss 133000 (
+set AMOUNT_BNK_BEFORE=0
+if exist "%~dp0german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\Content\WwiseAudio\Event\English(US)" (
+    for /f %%A in ('dir /a-d /b "%~dp0german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\Content\WwiseAudio\Event\English(US)" 2^>nul ^| find /v /c ""') do set AMOUNT_BNK_BEFORE=%%A
+)
+
+if !AMOUNT_BNK_BEFORE! lss 133000 (
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
     .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
 
-    for /f %%A in ('dir /a-d /b "%~dp0german-voices-oblivion-remastered-voxmeld_v0.4.1_P\Content\WwiseAudio\Event\English(US)" ^| find /v /c ""') do set AMOUNT_BNK_AFTER=%%A
-    if %AMOUNT_BNK_AFTER% lss 133000 (
+    set AMOUNT_BNK_AFTER=0
+    if exist "%~dp0german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\Content\WwiseAudio\Event\English(US)" (
+        for /f %%A in ('dir /a-d /b "%~dp0german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\Content\WwiseAudio\Event\English(US)" 2^>nul ^| find /v /c ""') do set AMOUNT_BNK_AFTER=%%A
+    )
+
+    if !AMOUNT_BNK_AFTER! lss 133000 (
         echo ERROR: Could not create bnk files correctly
         pause
         exit
@@ -162,19 +191,26 @@ if %AMOUNT_BNK_BEFORE% lss 133000 (
     )
 )
 
-:: Final step. Build the mod PAK file
-cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v0.4.1_P\"
+if %EXECUTE_MP3_DIFF_SCRIPT% == "true" (
+    call "%~dp0scripts\check_missing_wem_files.bat"
+)
 
-for %%A in ("%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v0.4.1_P.pak") do set size=%%~zA
+:: Final step. Build the mod PAK file
+cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\"
+
+set size=0
+if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak" (
+    for %%A in ("%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak") do set size=%%~zA
+)
 
 :: Check if file is bigger than 10 MB
-if %size% GTR 10485760 (
+if "%size%" GTR "10485760" (
     echo Die .pak Datei wurde erfolgreich erstellt. Bitte kopiere den ganzen 'Content' Ordner aus dem 'Modfiles' Ordner in dein Spielverzeichnis!
     :: Delete temporary directories entirely
     rd /s /q "%TMP_DIR%"
     rd /s /q "%~dp0\sound2wem\audiotemp"
     rd /s /q "%~dp0\sound2wem\Windows"
-    rd /s /q "%~dp0\german-voices-oblivion-remastered-voxmeld_v0.4.1_P"
+    rd /s /q "%~dp0\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P"
 ) else (
     echo ERROR: The created .pak file is less than 10MB!
 )
