@@ -8,7 +8,12 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"log"
 )
+
+// Neuer Logger
+var logger *log.Logger
+var logFile *os.File
 
 // Mapping für die Umbenennungen
 var prefixMappings = map[string]struct {
@@ -47,12 +52,12 @@ var prefixMappings = map[string]struct {
 		"tmp/sound/voice/knights.esp/rothwardone",
 		"tmp/sound/voice/knights.esp/redguard",
 	},
-	"dunkler": {
-		"tmp/sound/voice/oblivion.esm/dunkler*",
+	"oblivion.esm_dunkler": {
+		"tmp/sound/voice/oblivion.esm/dunkler verführer",
 		"tmp/sound/voice/oblivion.esm/dark_seducer",
 	},
-	"goldener": {
-		"tmp/sound/voice/oblivion.esm/goldener*",
+	"oblivion.esm_goldener": {
+		"tmp/sound/voice/oblivion.esm/goldener heiliger",
 		"tmp/sound/voice/oblivion.esm/golden_saint",
 	},
 }
@@ -69,46 +74,65 @@ var raceAlternatives = map[string][]string{
 var fileMutex sync.Mutex
 
 func main() {
-	fmt.Println("Starte Verarbeitung der Audiodateien...")
+	setupLogging()
+	defer logFile.Close()
+
+	logAndPrint("Starte Verarbeitung der Audiodateien...")
 	
 	// Führe Prefix-Änderungen durch
-	fmt.Println("Führe Prefix-Änderungen durch...")
+	logAndPrint("Führe Prefix-Änderungen durch...")
 	performPrefixChanges()
 
 	// Erstelle MP3s Verzeichnis
-	fmt.Println("Erstelle MP3s Verzeichnis...")
+	logAndPrint("Erstelle MP3s Verzeichnis...")
 	os.MkdirAll("tmp/MP3s", 0755)
 
 	// Verarbeite Dateien
-	fmt.Println("Starte Dateiverarbeitung...")
+	logAndPrint("Starte Dateiverarbeitung...")
 	processFiles()
 
-	fmt.Println("\nVerarbeitung abgeschlossen!")
+	logAndPrint("\nVerarbeitung abgeschlossen!")
+}
+
+// Funktion zum Einrichten des Loggings
+func setupLogging() {
+	// Erstelle Log-Verzeichnis, wenn es nicht existiert
+	err := os.MkdirAll("logs", 0755)
+	if err != nil {
+		fmt.Printf("Fehler beim Erstellen des Log-Verzeichnisses: %v\n", err)
+		return
+	}
+
+	// Öffne die Log-Datei
+	logFile, err = os.OpenFile("logs/change-prefix-move-mp3s.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Printf("Fehler beim Öffnen der Log-Datei: %v\n", err)
+		return
+	}
+
+	// Initialisiere den Logger
+	logger = log.New(logFile, "", log.LstdFlags)
+	logAndPrint("Logging initialisiert")
+}
+
+// Funktion zum Loggen und gleichzeitigen Ausgeben einer Nachricht
+func logAndPrint(message string) {
+	fmt.Println(message)
+	if logger != nil {
+		logger.Println(message)
+	}
 }
 
 func performPrefixChanges() {
 	for _, mapping := range prefixMappings {
-		// Behandle Wildcards
-		if strings.Contains(mapping.oldPath, "*") {
-			matches, err := filepath.Glob(mapping.oldPath)
-			if err != nil {
-				fmt.Printf("Fehler beim Suchen von Dateien für Muster %s: %v\n", mapping.oldPath, err)
-				continue
-			}
-			for _, match := range matches {
-				newPath := strings.Replace(match, strings.TrimSuffix(mapping.oldPath, "*"), mapping.newPath, 1)
-				fmt.Printf("Benenne um: %s -> %s\n", match, newPath)
-				if err := os.Rename(match, newPath); err != nil {
-					fmt.Printf("Fehler beim Umbenennen von %s zu %s: %v\n", match, newPath, err)
-				}
+		// Prüfe, ob der Quellpfad existiert
+		if _, err := os.Stat(mapping.oldPath); err == nil {
+			logAndPrint(fmt.Sprintf("Benenne um: %s -> %s", mapping.oldPath, mapping.newPath))
+			if err := os.Rename(mapping.oldPath, mapping.newPath); err != nil {
+				logAndPrint(fmt.Sprintf("Fehler beim Umbenennen von %s zu %s: %v", mapping.oldPath, mapping.newPath, err))
 			}
 		} else {
-			if _, err := os.Stat(mapping.oldPath); err == nil {
-				fmt.Printf("Benenne um: %s -> %s\n", mapping.oldPath, mapping.newPath)
-				if err := os.Rename(mapping.oldPath, mapping.newPath); err != nil {
-					fmt.Printf("Fehler beim Umbenennen von %s zu %s: %v\n", mapping.oldPath, mapping.newPath, err)
-				}
-			}
+			logAndPrint(fmt.Sprintf("Quellpfad existiert nicht: %s", mapping.oldPath))
 		}
 	}
 }
@@ -116,6 +140,7 @@ func performPrefixChanges() {
 func checkAndCopyRemaster(dlc, race, variant, file string, wg *sync.WaitGroup) {
 	prefixes := []string{"", "/altvoice", "/beggar"}
 	for _, prefix := range prefixes {
+		race = strings.Replace(race, "_", " ", -1)
 		targetPath := filepath.Join(
 			"ModFiles/Oblivion Remastered/OblivionRemastered/Content/Dev/ObvData/Data/sound/voice",
 			dlc, race, variant+prefix, filepath.Base(file),
@@ -123,11 +148,14 @@ func checkAndCopyRemaster(dlc, race, variant, file string, wg *sync.WaitGroup) {
 		
 		// Prüfe ob Zieldatei existiert
 		if _, err := os.Stat(filepath.Dir(targetPath)); err == nil {
-			fmt.Printf("Copy variant: %s/%s/%s%s/%s...\n", dlc, race, variant, prefix, filepath.Base(file))
+			message := fmt.Sprintf("Copy variant: %s/%s/%s%s/%s...", dlc, race, variant, prefix, filepath.Base(file))
+			logAndPrint(message)
 			wg.Add(1)
 			go func(src, dst string) {
 				defer wg.Done()
-				copyFile(src, dst)
+				if err := copyFile(src, dst); err != nil {
+					logAndPrint(fmt.Sprintf("Fehler beim Kopieren von %s nach %s: %v", src, dst, err))
+				}
 			}(file, targetPath)
 		}
 	}
@@ -178,7 +206,9 @@ func processFiles() {
 					wg.Add(1)
 					go func(src, dst string) {
 						defer wg.Done()
-						copyFile(src, dst)
+						if err := copyFile(src, dst); err != nil {
+							logAndPrint(fmt.Sprintf("Fehler beim Kopieren von %s nach %s: %v", src, dst, err))
+						}
 						updateProgress()
 					}(file, mp3Target)
 
@@ -197,7 +227,7 @@ func processFiles() {
 	}
 
 	wg.Wait()
-	fmt.Println("\nVerarbeitung abgeschlossen!")
+	logAndPrint("\nVerarbeitung abgeschlossen!")
 }
 
 func copyFile(src, dst string) error {
