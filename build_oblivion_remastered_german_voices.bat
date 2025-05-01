@@ -18,6 +18,9 @@ set "DLC_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCOrrery.bsa"
 set "DLC_3_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCThievesDen.bsa"
 set "DLC_4_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCVilelair.bsa"
 
+:: Custom voice lines
+set "CUSTOM_BSA=%~dp0custom\Oblivion - VoicesCustom.bsa"
+
 set "DLC_1_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCHorseArmor.bsa"
 set "DLC_2_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCOrrery.bsa"
 set "DLC_3_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCThievesDen.bsa"
@@ -33,61 +36,120 @@ if exist "%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak" (
 
 set "RESULT_FOLDER_DATA=ModFiles\Content\Dev\ObvData\Data"
 set "RESULT_FOLDER_PAK=ModFiles\Content\Paks\~mods"
+set "TMP_DIR=%~dp0tmp"
 
 :: Create folders for temp files and final mod files
 mkdir tmp\
 mkdir "%RESULT_FOLDER_DATA%\"
 mkdir "%RESULT_FOLDER_PAK%\"
 
-if %SKIP_STEPS_INDICATOR% == 0 (
+
+if not exist "%RESULT_FOLDER_DATA%\sound" (
     :: Extract the remaster .bsa files with VO
     .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
     .\BSArch\BSArch.exe unpack "%VOICES_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
     .\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
     .\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+
+    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_3_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+
+    if not exist "%RESULT_FOLDER_DATA%\sound" (
+        echo Could not find extracted bsa files of Oblivion Remastered
+        pause
+        exit
+    )
+)
+
+if not exist "%~dp0tmp\sound" (
     :: Extract the original MP3s from all original .bsa voice files
-    set TMP_DIR=%CD%\tmp\
     .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_ORIGINAL%" tmp\ -mt
     .\BSArch\BSArch.exe unpack "%VOICES_2_BSA_ORIGINAL%" tmp\ -mt
     .\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_ORIGINAL%" tmp\ -mt
     .\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_ORIGINAL%" tmp\ -mt
-
-    :: Check for optional dlc
-    if exist "%DLC_1_BSA_ORIGINAL%" (
-        .\BSArch\BSArch.exe unpack "%DLC_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-        .\BSArch\BSArch.exe unpack "%DLC_1_BSA_ORIGINAL%" tmp\ -mt
-    )
-    if exist "%DLC_2_BSA_ORIGINAL%" (
-        .\BSArch\BSArch.exe unpack "%DLC_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-        .\BSArch\BSArch.exe unpack "%DLC_2_BSA_ORIGINAL%" tmp\ -mt
-    )
-    if exist "%DLC_3_BSA_ORIGINAL%" (
-        .\BSArch\BSArch.exe unpack "%DLC_3_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    
+    :: Optional: DLCs
+    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_ORIGINAL%" tmp\ -mt
+    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_ORIGINAL%" tmp\ -mt
     .\BSArch\BSArch.exe unpack "%DLC_3_BSA_ORIGINAL%" tmp\ -mt
+    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" tmp\ -mt
+
+    :: Custom voice lines
+    :: .\BSArch\BSArch.exe unpack "%CUSTOM_BSA%" tmp\ -mt
+
+    if not exist "%~dp0tmp\sound" (
+        echo ERROR: Could not find extracted .bsa files of Oblivion
+        pause
+        exit
     )
-    if exist "%DLC_4_BSA_ORIGINAL%" (
-        .\BSArch\BSArch.exe unpack "%DLC_4_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-        .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" tmp\ -mt
-    )
 )
-:: Extract the BNKs from the OblivionRemastered-Windows.pak
-if %SKIP_STEPS_INDICATOR% < 2 (
-    set "UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe"
-    "%UNREAL_PAK_EXE%" -Extract "%OBRE_PAK%" "%CD%\tmp\pak"
-)
-:: Copy all MP3s to the MP3 to WEM input folder and bsa extract folders
-if %SKIP_STEPS_INDICATOR% < 3 (
-    .\voxmeld\change-prefix-move-mp3s.exe
-)
+
 :: Copy intro and outro
-copy "%DIRECTORY_ORIGINAL%\Video\OblivionIntro.bik" "%TMP_DIR%MP3s\scripted_intro_play.bik"
-:: copy "%DIRECTORY_ORIGINAL%\Video\OblivionOutro.bik" "%TMP_DIR%MP3s\PlaceholderOutro.bik"
-:: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
-.\sound2wem\sound2wem.exe "%TMP_DIR%\MP3s\*"
-:: The MP3s folder is no longer needed, so we can delete it to save space
-:: rd /s /q "%TMP_DIR%MP3s"
+mkdir "%TMP_DIR%\MP3s\"
+copy "%DIRECTORY_ORIGINAL%\Video\OblivionIntro.bik" "%TMP_DIR%\MP3s\scripted_intro_play.bik"
+copy "%DIRECTORY_ORIGINAL%\Video\OblivionOutro.bik" "%TMP_DIR%\MP3s\scripted_outro_play.bik"
+
+if not exist "%~dp0tmp\pak" (
+    :: Extract the BNKs from the OblivionRemastered-Windows.pak
+    "%UNREAL_BIN_DIR%\UnrealPak.exe" -Extract "%OBRE_PAK%" "%~dp0tmp\pak"
+
+    if not exist "%~dp0tmp\pak" (
+        echo ERROR: Could not find extracted .pak file data of Oblivion Remastered
+        pause
+        exit
+    )
+)
+
+:: Check amount of wem files. Below 47000 would mean that most likely files are missing or the code did not run yet
+for /f %%A in ('dir /a-d /b "%~dp0sound2wem\Windows" ^| find /v /c ""') do set AMOUNT_WEM_BEFORE=%%A
+if %AMOUNT_WEM_BEFORE% < 47000 (
+    :: Check amount of mp3 files. Below 47000 would mean that most likely files are missing or the code did not run yet
+    for /f %%A in ('dir /a-d /b "%TMP_DIR%\MP3s" ^| find /v /c ""') do set AMOUNT_MP3_BEFORE=%%A
+    if %AMOUNT_MP3_BEFORE% < 47000 (
+        :: Copy all mp3 files to their respective folders
+        .\voxmeld\change-prefix-move-mp3s.exe
+
+        for /f %%A in ('dir /a-d /b "%TMP_DIR%\MP3s" ^| find /v /c ""') do set AMOUNT_MP3_AFTER=%%A
+        if %AMOUNT_MP3_AFTER% < 47000 (
+            echo ERROR: Could not copy over .mp3 files correctly
+            pause
+            exit
+            
+        )
+    )
+
+    :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
+    .\sound2wem\sound2wem.exe "%TMP_DIR%\MP3s\*"
+
+    for /f %%A in ('dir /a-d /b "%~dp0sound2wem\Windows" ^| find /v /c ""') do set AMOUNT_WEM_AFTER=%%A
+    if %AMOUNT_WEM_AFTER% < 47000 (
+        echo ERROR: Could not convert .mp3 files correctly
+        pause
+        exit
+        
+    ) else (
+        :: The MP3s folder is no longer needed, so we can delete it to save space
+        rd /s /q "%TMP_DIR%\MP3s"
+    )
+)
+
+:: Check amount of bnk files. Below 47000 would mean that most likely files are missing or the code did not run yet
+for /f %%A in ('dir /a-d /b "%~dp0german-voices-oblivion-remastered-voxmeld_v0.4.1_P\Content\WwiseAudio\Event\English(US)" ^| find /v /c ""') do set AMOUNT_BNK_BEFORE=%%A
+if %AMOUNT_BNK_BEFORE% < 133000 (
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
-.\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
+    .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
+
+    for /f %%A in ('dir /a-d /b "%~dp0german-voices-oblivion-remastered-voxmeld_v0.4.1_P\Content\WwiseAudio\Event\English(US)" ^| find /v /c ""') do set AMOUNT_BNK_AFTER=%%A
+    if %AMOUNT_BNK_AFTER% < 133000 (
+        echo ERROR: Could not create bnk files correctly
+        pause
+        exit
+        
+    )
+)
+
 :: Final step. Build the mod PAK file
 cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v0.4.1_P\"
 pause
