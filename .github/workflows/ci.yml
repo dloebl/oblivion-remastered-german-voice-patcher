@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - name: "Linux"
+            os: ubuntu-24.04
+          - name: "macOS"
+            os: macos-14
+          - name: "Windows"
+            os: windows-2022
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+    - name: Build
+      working-directory: ./voxmeld/src/
+      run: go build -v -o . ./...
