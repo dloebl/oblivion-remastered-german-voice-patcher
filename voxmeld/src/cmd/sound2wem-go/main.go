@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"time"
 )
 
 type Config struct {
@@ -163,15 +165,67 @@ func main() {
 	cmd := exec.Command(config.WwisePath, "convert-external-source",
 		filepath.Join(execDir, config.ProjectName, config.ProjectName+".wproj"),
 		"--source-file", wsourcesPath,
-		"--output", execDir)  // "--quiet" Flag entfernt
+		"--output", execDir,
+		"--quiet")
 
-	// Stdout und Stderr an die Konsole weiterleiten
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// Pipe für die Standardausgabe erstellen
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		fmt.Printf("Fehler beim Erstellen der Stdout-Pipe: %v\n", err)
+		return
+	}
 
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("Fehler bei der Wwise Konvertierung: %v\n", err)
+	// Pipe für die Fehlerausgabe erstellen
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		fmt.Printf("Fehler beim Erstellen der Stderr-Pipe: %v\n", err)
+		return
+	}
+
+	// Kommando im Hintergrund starten
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("Fehler beim Starten der Wwise Konvertierung: %v\n", err)
+		return
+	}
+
+	// Animation für den Fortschrittsindikator
+	done := make(chan bool)
+	go func() {
+		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		i := 0
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				fmt.Printf("\rKonvertierung läuft... %s", spinner[i])
+				i = (i + 1) % len(spinner)
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+
+	// Ausgaben in Echtzeit verarbeiten
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			fmt.Printf("\r%s\n", scanner.Text())
+		}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			fmt.Printf("\r%s\n", scanner.Text())
+		}
+	}()
+
+	// Auf Beendigung warten
+	if err := cmd.Wait(); err != nil {
+		done <- true
+		fmt.Printf("\n\rFehler bei der Wwise Konvertierung: %v\n", err)
 	} else {
-		fmt.Println("Wwise Konvertierung erfolgreich abgeschlossen!")
+		done <- true
+		fmt.Printf("\n\rWwise Konvertierung erfolgreich abgeschlossen!\n")
 	}
 }
