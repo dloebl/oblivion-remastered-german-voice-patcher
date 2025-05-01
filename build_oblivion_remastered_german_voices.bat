@@ -1,37 +1,37 @@
 chcp 1252
 call "%~dp0paths.bat"
 
-set VOICES_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices1.bsa
-set VOICES_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices2.bsa
-set SHIVERING_ISLES_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCShiveringIsles - Voices.bsa
-set KNIGHTS_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Knights.bsa
+set "VOICES_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices1.bsa"
+set "VOICES_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices2.bsa"
+set "SHIVERING_ISLES_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCShiveringIsles - Voices.bsa"
+set "KNIGHTS_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Knights.bsa"
 
-set VOICES_1_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\Oblivion - Voices1.bsa
-set VOICES_2_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\Oblivion - Voices2.bsa
-set SHIVERING_ISLES_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCShiveringIsles - Voices.bsa
-set KNIGHTS_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\Knights.bsa
+set "VOICES_1_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\Oblivion - Voices1.bsa"
+set "VOICES_2_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\Oblivion - Voices2.bsa"
+set "SHIVERING_ISLES_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCShiveringIsles - Voices.bsa"
+set "KNIGHTS_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\Knights.bsa"
 
 :: Optional DLC
-set DLC_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCHorseArmor.bsa
-set DLC_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCOrrery.bsa
-set DLC_3_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCThievesDen.bsa
-set DLC_4_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCVilelair.bsa
+set "DLC_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCHorseArmor.bsa"
+set "DLC_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCOrrery.bsa"
+set "DLC_3_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCThievesDen.bsa"
+set "DLC_4_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\DLCVilelair.bsa"
 
-set DLC_1_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCHorseArmor.bsa
-set DLC_2_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCOrrery.bsa
-set DLC_3_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCThievesDen.bsa
-set DLC_4_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCVilelair.bsa
+set "DLC_1_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCHorseArmor.bsa"
+set "DLC_2_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCOrrery.bsa"
+set "DLC_3_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCThievesDen.bsa"
+set "DLC_4_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCVilelair.bsa"
 
 if exist "%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak" (
     :: Steam Version
-    set OBRE_PAK=%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak
+    set "OBRE_PAK=%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak"
 ) else (
     :: Xbox Gamepass Version
-    set OBRE_PAK=%DIRECTORY_OBRE%\Paks\OblivionRemastered-WinGDK.pak
+    set "OBRE_PAK=%DIRECTORY_OBRE%\Paks\OblivionRemastered-WinGDK.pak"
 )
 
-set RESULT_FOLDER_DATA=ModFiles\Content\Dev\ObvData\Data
-set RESULT_FOLDER_PAK=ModFiles\Content\Paks\~mods
+set "RESULT_FOLDER_DATA=ModFiles\Content\Dev\ObvData\Data"
+set "RESULT_FOLDER_PAK=ModFiles\Content\Paks\~mods"
 
 :: Create folders for temp files and final mod files
 mkdir tmp\
@@ -68,7 +68,7 @@ if exist "%DLC_4_BSA_ORIGINAL%" (
     .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" tmp\ -mt
 )
 :: Extract the BNKs from the OblivionRemastered-Windows.pak
-set UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe
+set "UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe"
 "%UNREAL_PAK_EXE%" -Extract "%OBRE_PAK%" "%CD%\tmp\pak"
 :: Copy all MP3s to the MP3 to WEM input folder and bsa extract folders
 .\busybox\busybox.exe bash scripts\change-prefix-move-mp3s.sh
