@@ -1,0 +1,231 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"encoding/xml"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"sync"
+	"time"
+)
+
+type Config struct {
+	WwisePath   string `json:"wwisePath"`
+	FfmpegPath  string `json:"ffmpegPath"`
+	ProjectName string `json:"projectName"`
+	Conversion  string `json:"conversion"`
+}
+
+type ExternalSourcesList struct {
+	XMLName       xml.Name `xml:"ExternalSourcesList"`
+	SchemaVersion string   `xml:"SchemaVersion,attr"`
+	Root         string   `xml:"Root,attr"`
+	Sources      []Source `xml:"Source"`
+}
+
+type Source struct {
+	Path       string `xml:"Path,attr"`
+	Conversion string `xml:"Conversion,attr"`
+}
+
+func loadConfig(execDir string) (*Config, error) {
+	configPath := filepath.Join(execDir, "config.json")
+	configData, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("Fehler beim Lesen der config.json: %v", err)
+	}
+
+	var config Config
+	if err := json.Unmarshal(configData, &config); err != nil {
+		return nil, fmt.Errorf("Fehler beim Parsen der config.json: %v", err)
+	}
+
+	// Setze Standardwerte falls leer
+	if config.WwisePath == "" {
+		config.WwisePath = os.Getenv("WWISEROOT") + "\\Authoring\\x64\\Release\\bin\\WwiseConsole.exe"
+	}
+	if config.FfmpegPath == "" {
+		config.FfmpegPath = filepath.Join(execDir, "ffmpeg-master-latest-win64-gpl-shared", "bin", "ffmpeg.exe")
+	}
+	if config.ProjectName == "" {
+		config.ProjectName = "wavtowemscript"
+	}
+	if config.Conversion == "" {
+		config.Conversion = "Vorbis Quality High"
+	}
+
+	return &config, nil
+}
+
+func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("Fehler: Keine Eingabedateien angegeben")
+		return
+	}
+
+	// Konfiguration laden
+	execDir, err := os.Executable()
+	if err != nil {
+		fmt.Println("Fehler beim Ermitteln des Ausführungsverzeichnisses:", err)
+		return
+	}
+	execDir = filepath.Dir(execDir)
+
+	config, err := loadConfig(execDir)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Wwise Projekt erstellen, falls es nicht existiert
+	projectPath := filepath.Join(execDir, config.ProjectName)
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		fmt.Println("Erstelle neues Wwise Projekt...")
+		cmd := exec.Command(config.WwisePath, "create-new-project",
+			filepath.Join(projectPath, config.ProjectName+".wproj"),
+			"--quiet")
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Fehler beim Erstellen des Wwise Projekts: %v\n", err)
+			return
+		}
+	}
+
+	// Temporäres Verzeichnis erstellen
+	tempDir := filepath.Join(execDir, "audiotemp")
+	os.MkdirAll(tempDir, 0755)
+	defer os.RemoveAll(tempDir)
+
+	// Parallel Audio-Dateien konvertieren
+	var wg sync.WaitGroup
+	numCPU := runtime.NumCPU()
+	semaphore := make(chan struct{}, numCPU)
+
+	fmt.Printf("Starte Konvertierung mit %d parallelen Prozessen...\n", numCPU)
+
+	for _, pattern := range os.Args[1:] {
+		matches, _ := filepath.Glob(pattern)
+		for _, file := range matches {
+			wg.Add(1)
+			go func(inputFile string) {
+				defer wg.Done()
+				semaphore <- struct{}{} // Slot belegen
+				defer func() { <-semaphore }() // Slot freigeben
+
+				outputFile := filepath.Join(tempDir, filepath.Base(inputFile))
+				outputFile = outputFile[:len(outputFile)-len(filepath.Ext(outputFile))] + ".wav"
+				
+				fmt.Printf("Konvertiere: %s -> %s\n", inputFile, filepath.Base(outputFile))
+				
+				cmd := exec.Command(config.FfmpegPath, "-hide_banner", "-loglevel", "warning", 
+					"-i", inputFile, outputFile)
+				if err := cmd.Run(); err != nil {
+					fmt.Printf("Fehler bei der Konvertierung von %s: %v\n", inputFile, err)
+				} else {
+					fmt.Printf("Erfolgreich konvertiert: %s\n", filepath.Base(outputFile))
+				}
+			}(file)
+		}
+	}
+	wg.Wait()
+
+	fmt.Println("Alle Audio-Dateien konvertiert. Erstelle XML...")
+
+	// WSources XML erstellen
+	sources := ExternalSourcesList{
+		SchemaVersion: "1",
+		Root:          tempDir,
+	}
+
+	files, _ := filepath.Glob(filepath.Join(tempDir, "*.wav"))
+	for _, file := range files {
+		sources.Sources = append(sources.Sources, Source{
+			Path:       filepath.Base(file),
+			Conversion: config.Conversion,
+		})
+	}
+
+	// XML speichern
+	wsourcesPath := filepath.Join(execDir, "list.wsources")
+	xmlData, err := xml.MarshalIndent(sources, "", "  ")
+	if err != nil {
+		fmt.Printf("Fehler beim Erstellen der XML-Daten: %v\n", err)
+		os.Exit(1)
+	}
+	os.WriteFile(wsourcesPath, []byte(xml.Header+string(xmlData)), 0644)
+	defer os.Remove(wsourcesPath)
+
+
+	fmt.Println("Starte Wwise Konvertierung...")
+
+	// Wwise Konvertierung
+	cmd := exec.Command(config.WwisePath, "convert-external-source",
+		filepath.Join(execDir, config.ProjectName, config.ProjectName+".wproj"),
+		"--source-file", wsourcesPath,
+		"--output", execDir,
+		"--quiet")
+
+	// Pipe für die Standardausgabe erstellen
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		fmt.Printf("Fehler beim Erstellen der Stdout-Pipe: %v\n", err)
+		return
+	}
+
+	// Pipe für die Fehlerausgabe erstellen
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		fmt.Printf("Fehler beim Erstellen der Stderr-Pipe: %v\n", err)
+		return
+	}
+
+	// Kommando im Hintergrund starten
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("Fehler beim Starten der Wwise Konvertierung: %v\n", err)
+		return
+	}
+
+	// Animation für den Fortschrittsindikator
+	done := make(chan bool)
+	go func() {
+		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		i := 0
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				fmt.Printf("\rKonvertierung läuft... %s", spinner[i])
+				i = (i + 1) % len(spinner)
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+
+	// Ausgaben in Echtzeit verarbeiten
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			fmt.Printf("\r%s\n", scanner.Text())
+		}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			fmt.Printf("\r%s\n", scanner.Text())
+		}
+	}()
+
+	// Auf Beendigung warten
+	if err := cmd.Wait(); err != nil {
+		done <- true
+		fmt.Printf("\n\rFehler bei der Wwise Konvertierung: %v\n", err)
+	} else {
+		done <- true
+		fmt.Printf("\n\rWwise Konvertierung erfolgreich abgeschlossen!\n")
+	}
+}
