@@ -79,6 +79,19 @@ func main() {
 		return
 	}
 
+	// Wwise Projekt erstellen, falls es nicht existiert
+	projectPath := filepath.Join(execDir, config.ProjectName)
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		fmt.Println("Erstelle neues Wwise Projekt...")
+		cmd := exec.Command(config.WwisePath, "create-new-project",
+			filepath.Join(projectPath, config.ProjectName+".wproj"),
+			"--quiet")
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Fehler beim Erstellen des Wwise Projekts: %v\n", err)
+			return
+		}
+	}
+
 	// Temporäres Verzeichnis erstellen
 	tempDir := filepath.Join(execDir, "audiotemp")
 	os.MkdirAll(tempDir, 0755)
@@ -135,7 +148,11 @@ func main() {
 
 	// XML speichern
 	wsourcesPath := filepath.Join(execDir, "list.wsources")
-	xmlData, _ := xml.MarshalIndent(sources, "", "  ")
+	xmlData, err := xml.MarshalIndent(sources, "", "  ")
+	if err != nil {
+		fmt.Printf("Fehler beim Erstellen der XML-Daten: %v\n", err)
+		os.Exit(1)
+	}
 	os.WriteFile(wsourcesPath, []byte(xml.Header+string(xmlData)), 0644)
 	defer os.Remove(wsourcesPath)
 

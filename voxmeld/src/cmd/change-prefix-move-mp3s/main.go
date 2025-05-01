@@ -91,17 +91,23 @@ func performPrefixChanges() {
 		// Behandle Wildcards
 		if strings.Contains(mapping.oldPath, "*") {
 			matches, err := filepath.Glob(mapping.oldPath)
-			if err == nil {
-				for _, match := range matches {
-					newPath := strings.Replace(match, strings.TrimSuffix(mapping.oldPath, "*"), mapping.newPath, 1)
-					fmt.Printf("Benenne um: %s -> %s\n", match, newPath)
-					os.Rename(match, newPath)
+			if err != nil {
+				fmt.Printf("Fehler beim Suchen von Dateien für Muster %s: %v\n", mapping.oldPath, err)
+				continue
+			}
+			for _, match := range matches {
+				newPath := strings.Replace(match, strings.TrimSuffix(mapping.oldPath, "*"), mapping.newPath, 1)
+				fmt.Printf("Benenne um: %s -> %s\n", match, newPath)
+				if err := os.Rename(match, newPath); err != nil {
+					fmt.Printf("Fehler beim Umbenennen von %s zu %s: %v\n", match, newPath, err)
 				}
 			}
 		} else {
 			if _, err := os.Stat(mapping.oldPath); err == nil {
 				fmt.Printf("Benenne um: %s -> %s\n", mapping.oldPath, mapping.newPath)
-				os.Rename(mapping.oldPath, mapping.newPath)
+				if err := os.Rename(mapping.oldPath, mapping.newPath); err != nil {
+					fmt.Printf("Fehler beim Umbenennen von %s zu %s: %v\n", mapping.oldPath, mapping.newPath, err)
+				}
 			}
 		}
 	}
