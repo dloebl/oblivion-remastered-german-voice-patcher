@@ -224,9 +224,11 @@ if not "!bitrate!"=="" set "bitrate=-ar !bitrate! "
 if not "!channels!"=="" set "channels=-ac !channels! "
 if not "!volume!"=="" set volume=-filter:a "volume=!volume!" 
 if not "!extra!"=="" set "extra=!extra! " 
+echo "Starting mp3 to wav convert...(This may take a while!)"
 :: Convert audio files to (.wav) using preferred user settings, to then convert with Wwise.
 for %%a in (%*)do "!ffmpeg!" -hide_banner -loglevel warning -i "%%a" !bitrate!!channels!!volume!!extra!"audiotemp\%%~na.wav"
-
+echo "Finished mp3 to wav convert"
+echo "Generating wav to wem filelist..."
 :: Create wsources file for Wwise conversion. See [?5] to view the format more clearly.
 if exist "list.wsources" del /q /f "list.wsources"
 (
@@ -236,7 +238,6 @@ echo ^<ExternalSourcesList SchemaVersion="1" Root="!cd!\audiotemp"^>
 for /f "tokens=* delims=" %%a in ('dir audiotemp /b ')do echo 	^<Source Path="%%a" Conversion="!conversion!"/^>>> "list.wsources"
 echo ^</ExternalSourcesList^>>> "list.wsources"
 if "!out!"=="" set "out=!cd!"
-echo "Finished mp3 to wav convert"
 echo "Starting wav to wem convert...(This may take a while!)"
 "!wwisePATH!" convert-external-source "!project!\!project!.wproj" --source-file "!cd!\list.wsources" --output "!out!" --quiet
 ::for %%a in (%*)do del /f /q "audiotemp\%%~na.akd"

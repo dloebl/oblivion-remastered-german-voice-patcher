@@ -25,7 +25,7 @@ func main() {
 		
 		log.Printf("Found mapping entry for '%s'.", videoAudio)
 
-		outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.2_P/Content/WwiseAudio/Media/English(US)/" + videoAudio + ".wem"
+		outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Media/English(US)/" + videoAudio + ".wem"
 		wem, err := os.ReadFile(wemPath)
 		if err != nil {
 			log.Fatalf("Error while reading .wem file: %v\n", err)
@@ -132,7 +132,7 @@ func main() {
 			}
 			binary.LittleEndian.PutUint32(bnk[fileSizeOffset:fileSizeOffset+4], wemSize)
 			// write the modified .bnk file to the output folder
-			outBnkPath := "german-voices-oblivion-remastered-voxmeld_v0.3.2_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
+			outBnkPath := "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
 			err = os.WriteFile(outBnkPath, bnk, 0644)
 			if err != nil {
 				log.Fatalf("Failed to write modified .bnk file: %v\n", err)
@@ -143,7 +143,7 @@ func main() {
 			if err != nil {
 				log.Fatalf("Failed to read .wem file: %v\n", err)
 			}
-			outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.3.2_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
+			outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
 			err = os.WriteFile(outWemPath, wem, 0644)
 			if err != nil {
 				log.Fatalf("Failed to write .wem file: %v\n", err)

@@ -1,5 +1,6 @@
 chcp 1252
 call "%~dp0paths.bat"
+call "%~dp0settings.bat"
 
 set "VOICES_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices1.bsa"
 set "VOICES_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices2.bsa"
@@ -38,48 +39,56 @@ mkdir tmp\
 mkdir "%RESULT_FOLDER_DATA%\"
 mkdir "%RESULT_FOLDER_PAK%\"
 
-:: Extract the remaster .bsa files with VO
-.\BSArch\BSArch.exe unpack "%VOICES_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-.\BSArch\BSArch.exe unpack "%VOICES_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-.\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-.\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-:: Extract the original MP3s from all original .bsa voice files
-set TMP_DIR=%CD%\tmp\
-.\BSArch\BSArch.exe unpack "%VOICES_1_BSA_ORIGINAL%" tmp\ -mt
-.\BSArch\BSArch.exe unpack "%VOICES_2_BSA_ORIGINAL%" tmp\ -mt
-.\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_ORIGINAL%" tmp\ -mt
-.\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_ORIGINAL%" tmp\ -mt
+if %SKIP_STEPS_INDICATOR% == 0 (
+    :: Extract the remaster .bsa files with VO
+    .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%VOICES_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    :: Extract the original MP3s from all original .bsa voice files
+    set TMP_DIR=%CD%\tmp\
+    .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_ORIGINAL%" tmp\ -mt
+    .\BSArch\BSArch.exe unpack "%VOICES_2_BSA_ORIGINAL%" tmp\ -mt
+    .\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_ORIGINAL%" tmp\ -mt
+    .\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_ORIGINAL%" tmp\ -mt
 
-:: Check for optional dlc
-if exist "%DLC_1_BSA_ORIGINAL%" (
-    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_ORIGINAL%" tmp\ -mt
-)
-if exist "%DLC_2_BSA_ORIGINAL%" (
-    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_ORIGINAL%" tmp\ -mt
-)
-if exist "%DLC_3_BSA_ORIGINAL%" (
-    .\BSArch\BSArch.exe unpack "%DLC_3_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-   .\BSArch\BSArch.exe unpack "%DLC_3_BSA_ORIGINAL%" tmp\ -mt
-)
-if exist "%DLC_4_BSA_ORIGINAL%" (
-    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" tmp\ -mt
+    :: Check for optional dlc
+    if exist "%DLC_1_BSA_ORIGINAL%" (
+        .\BSArch\BSArch.exe unpack "%DLC_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+        .\BSArch\BSArch.exe unpack "%DLC_1_BSA_ORIGINAL%" tmp\ -mt
+    )
+    if exist "%DLC_2_BSA_ORIGINAL%" (
+        .\BSArch\BSArch.exe unpack "%DLC_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+        .\BSArch\BSArch.exe unpack "%DLC_2_BSA_ORIGINAL%" tmp\ -mt
+    )
+    if exist "%DLC_3_BSA_ORIGINAL%" (
+        .\BSArch\BSArch.exe unpack "%DLC_3_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\BSArch.exe unpack "%DLC_3_BSA_ORIGINAL%" tmp\ -mt
+    )
+    if exist "%DLC_4_BSA_ORIGINAL%" (
+        .\BSArch\BSArch.exe unpack "%DLC_4_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+        .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" tmp\ -mt
+    )
 )
 :: Extract the BNKs from the OblivionRemastered-Windows.pak
-set "UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe"
-"%UNREAL_PAK_EXE%" -Extract "%OBRE_PAK%" "%CD%\tmp\pak"
+if %SKIP_STEPS_INDICATOR% < 2 (
+    set "UNREAL_PAK_EXE=%UNREAL_BIN_DIR%\UnrealPak.exe"
+    "%UNREAL_PAK_EXE%" -Extract "%OBRE_PAK%" "%CD%\tmp\pak"
+)
 :: Copy all MP3s to the MP3 to WEM input folder and bsa extract folders
-.\busybox\busybox.exe bash scripts\change-prefix-move-mp3s.sh
+if %SKIP_STEPS_INDICATOR% < 3 (
+    .\busybox\busybox.exe bash scripts\change-prefix-move-mp3s.sh
+)
 :: Copy intro and outro
 copy "%DIRECTORY_ORIGINAL%\Video\OblivionIntro.bik" "%TMP_DIR%MP3s\205096107.bik"
 :: copy "%DIRECTORY_ORIGINAL%\Video\OblivionOutro.bik" "%TMP_DIR%MP3s\PlaceholderOutro.bik"
 :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
 cmd /c .\sound2wem\sound2wem.cmd "%TMP_DIR%MP3s\*"
+:: The MP3s folder is no longer needed, so we can delete it to save space
+:: rd /s /q "%TMP_DIR%MP3s"
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
 .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
 :: Final step. Build the mod PAK file
-cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v0.3.2_P\"
+cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v0.4.1_P\"
 pause
 exit
