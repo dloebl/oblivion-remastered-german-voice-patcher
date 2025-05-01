@@ -6,7 +6,7 @@ color f
 :: Setting current directory to the folder the script is in (just in case).
 set "cd=%~dp0"
 if "!cd:~-1,1!"=="\" set "cd=!cd:~0,-1!"
-cd !cd!
+cd "!cd!"
 
 :: [Script Author:   "Leo Pasanen"]
 :: [Script Version:  "3"]
@@ -42,14 +42,14 @@ cd !cd!
 :: See [?1] as for why.
 
 :: Path to Wwise base directory. Simply modify the BASE variable (although we only care about the PATH one). (Uses the environment variables set with wwise installation.)
-set "wwiseBASE=%WWISEROOT%
-set "wwisePATH=%wwiseBASE%\Authoring\x64\Release\bin\WwiseConsole.exe
+set "wwiseBASE=%WWISEROOT%"
+set "wwisePATH=%wwiseBASE%\Authoring\x64\Release\bin\WwiseConsole.exe"
 
 :: Path to ffmpeg, (blank = current directory / in path)
-set "ffmpeg=
+set "ffmpeg="
 
 :: Path to 7zip, (blank = current directory / in path) (7zip is only required for automated installation)
-set "7zPATH=
+set "7zPATH="
 
 :: Audio frequency in Hz. (Do not include the unit, see examples below) (blank means same as source)
 set bitrate=
@@ -64,13 +64,13 @@ set volume=
 set extra=
 
 :: Conversion (case-sensitive name)
-set "conversion=Vorbis Quality High
+set "conversion=Vorbis Quality High"
 
 :: Wwise Conversion Project Path (See [?])
-set "project=wavtowemscript
+set "project=wavtowemscript"
 
 :: Output directy, blank = current
-set "out=
+set "out="
 
 :: Whether to close the window when the conversion is done [true/false]
 set CloseOnExit=false
@@ -236,6 +236,8 @@ echo ^<ExternalSourcesList SchemaVersion="1" Root="!cd!\audiotemp"^>
 for /f "tokens=* delims=" %%a in ('dir audiotemp /b ')do echo 	^<Source Path="%%a" Conversion="!conversion!"/^>>> "list.wsources"
 echo ^</ExternalSourcesList^>>> "list.wsources"
 if "!out!"=="" set "out=!cd!"
+echo "Finished mp3 to wav convert"
+echo "Starting wav to wem convert...(This may take a while!)"
 "!wwisePATH!" convert-external-source "!project!\!project!.wproj" --source-file "!cd!\list.wsources" --output "!out!" --quiet
 ::for %%a in (%*)do del /f /q "audiotemp\%%~na.akd"
 ::for %%a in (%*)do del /f /q "audiotemp\%%~na.wav"
