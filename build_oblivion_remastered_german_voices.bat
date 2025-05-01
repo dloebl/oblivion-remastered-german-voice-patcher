@@ -1,10 +1,22 @@
 chcp 1252
 call "%~dp0paths.bat"
+call "%~dp0scripts\settings.bat"
 
 setlocal enabledelayedexpansion
 
-set "VERSION_NUMBER=0.4.1"
-set EXECUTE_MP3_DIFF_SCRIPT="true"
+if not exist "%DIRECTORY_ORIGINAL%" (
+    echo Error: Could not find Oblivion with the given path
+    pause
+    exit
+) else if not exist "%DIRECTORY_OBRE%" (
+    echo Error: Could not find Oblivion Remastered with the given path
+    pause
+    exit
+) else if not exist "%UNREAL_BIN_DIR%"(
+    echo Error: Could not find Unreal Engine with the given path
+    pause
+    exit
+)
 
 set "VOICES_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices1.bsa"
 set "VOICES_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices2.bsa"
@@ -33,9 +45,13 @@ set "DLC_4_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCVilelair.bsa"
 if exist "%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak" (
     :: Steam Version
     set "OBRE_PAK=%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak"
-) else (
+) else if exist "%DIRECTORY_OBRE%\Paks\OblivionRemastered-WinGDK.pak" (
     :: Xbox Gamepass Version
     set "OBRE_PAK=%DIRECTORY_OBRE%\Paks\OblivionRemastered-WinGDK.pak"
+) else (
+    echo Error: Could not find .pak file for Oblivion Remastered
+    pause
+    exit
 )
 
 set "RESULT_FOLDER_DATA=ModFiles\Content\Dev\ObvData\Data"
@@ -66,7 +82,7 @@ if not exist "%RESULT_FOLDER_DATA%\sound" (
     rd /s /q "%RESULT_FOLDER_DATA%\textures"
 
     if not exist "%RESULT_FOLDER_DATA%\sound" (
-        echo Could not find extracted bsa files of Oblivion Remastered
+        echo Error: Could not find extracted bsa files of Oblivion Remastered
         pause
         exit
     )
@@ -145,7 +161,9 @@ if !AMOUNT_WEM_BEFORE! lss 47000 (
             
         ) else (
             :: The bsa extract folder won't be needed anymore
-            rd /s /q "%TMP_DIR%\sound"
+            if %REMOVE_TEMP_FILES% == "true" (
+                rd /s /q "%TMP_DIR%\sound"
+            )
         )
     )
 
@@ -164,7 +182,9 @@ if !AMOUNT_WEM_BEFORE! lss 47000 (
         
     ) else (
         :: The MP3s folder is no longer needed, so we can delete it to save space
-        rd /s /q "%TMP_DIR%\MP3s"
+        if %REMOVE_TEMP_FILES% == "true" (
+            rd /s /q "%TMP_DIR%\MP3s"
+        )
     )
 )
 
@@ -192,7 +212,7 @@ if !AMOUNT_BNK_BEFORE! lss 133000 (
 )
 
 if %EXECUTE_MP3_DIFF_SCRIPT% == "true" (
-    call "%~dp0scripts\check_missing_wem_files.bat"
+    .\busybox\busybox.exe bash scripts\check-missing-wems.sh
 )
 
 :: Final step. Build the mod PAK file
@@ -206,11 +226,13 @@ if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSIO
 :: Check if file is bigger than 10 MB
 if "%size%" GTR "10485760" (
     echo Die .pak Datei wurde erfolgreich erstellt. Bitte kopiere den ganzen 'Content' Ordner aus dem 'Modfiles' Ordner in dein Spielverzeichnis!
-    :: Delete temporary directories entirely
-    rd /s /q "%TMP_DIR%"
-    rd /s /q "%~dp0\sound2wem\audiotemp"
-    rd /s /q "%~dp0\sound2wem\Windows"
-    rd /s /q "%~dp0\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P"
+    :: Delete rest of temporary files
+    if %REMOVE_TEMP_FILES% == "true" (
+        rd /s /q "%TMP_DIR%"
+        rd /s /q "%~dp0\sound2wem\audiotemp"
+        rd /s /q "%~dp0\sound2wem\Windows"
+        rd /s /q "%~dp0\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P"
+    )
 ) else (
     echo ERROR: The created .pak file is less than 10MB!
 )
