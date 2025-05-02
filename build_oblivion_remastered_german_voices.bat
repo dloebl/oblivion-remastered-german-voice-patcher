@@ -85,7 +85,7 @@ mkdir "%RESULT_FOLDER_PAK%\"
 
 if not exist "%RESULT_FOLDER_DATA%\sound" (
     :: Extract the remaster .bsa files with VO
-    .\BSArch\bsa-multi.exe -o "%RESULT_FOLDER_DATA%\" "%VOICES_1_BSA_OBRE%" "%VOICES_2_BSA_OBRE%" "%SHIVERING_ISLES_BSA_OBRE%" "%KNIGHTS_BSA_OBRE%" "%DLC_1_BSA_OBRE%" "%DLC_2_BSA_OBRE%" "%DLC_3_BSA_OBRE%" "%DLC_4_BSA_OBRE%"
+    .\BSArch\bsa-multi.exe -o "%RESULT_FOLDER_DATA%" "%VOICES_1_BSA_OBRE%" "%VOICES_2_BSA_OBRE%" "%SHIVERING_ISLES_BSA_OBRE%" "%KNIGHTS_BSA_OBRE%" "%DLC_1_BSA_OBRE%" "%DLC_2_BSA_OBRE%" "%DLC_3_BSA_OBRE%" "%DLC_4_BSA_OBRE%"
 
     :: We only need mp3 files from sound/voice
     rd /s /q "%RESULT_FOLDER_DATA%\meshes"
