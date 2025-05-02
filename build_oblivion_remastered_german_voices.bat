@@ -229,13 +229,19 @@ if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSIO
 
 :: Check if file is bigger than 10 MB
 if "%size%" GTR "10485760" (
-    echo Die .pak Datei wurde erfolgreich erstellt. Bitte kopiere den ganzen 'Content' Ordner aus dem 'Modfiles' Ordner in dein Spielverzeichnis!
+    echo Die .pak Datei wurde erfolgreich erstellt.
     :: Delete rest of temporary files
     if %REMOVE_TEMP_FILES% == "true" (
+        echo Temporärdateien werden entfernt...
+
         rd /s /q "%TMP_DIR%"
         rd /s /q "%~dp0\sound2wem\audiotemp"
         rd /s /q "%~dp0\sound2wem\Windows"
         rd /s /q "%~dp0\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P"
+
+        echo Die Mod wurde erfolgreich erstellt!
+        echo Bitte kopiere den ganzen 'Content' Ordner aus dem 'Modfiles' Ordner in dein Spielverzeichnis!
+        echo Du kannst die Konsole nun schließen.
     )
 ) else (
     echo ERROR: The created .pak file is less than 10MB!
