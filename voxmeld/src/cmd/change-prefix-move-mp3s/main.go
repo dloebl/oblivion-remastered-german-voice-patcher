@@ -142,12 +142,12 @@ func checkAndCopyRemaster(dlc, race, variant, file string, wg *sync.WaitGroup) {
 	for _, prefix := range prefixes {
 		race = strings.Replace(race, "_", " ", -1)
 		targetPath := filepath.Join(
-			"ModFiles/Oblivion Remastered/OblivionRemastered/Content/Dev/ObvData/Data/sound/voice",
+			"ModFiles/Content/Dev/ObvData/Data/sound/voice",
 			dlc, race, variant+prefix, filepath.Base(file),
 		)
 		
 		// Prüfe ob Zieldatei existiert
-		if _, err := os.Stat(filepath.Dir(targetPath)); err == nil {
+		if _, err := os.Stat(targetPath); err == nil {
 			message := fmt.Sprintf("Copy variant: %s/%s/%s%s/%s...", dlc, race, variant, prefix, filepath.Base(file))
 			logAndPrint(message)
 			wg.Add(1)

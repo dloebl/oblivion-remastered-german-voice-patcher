@@ -15,9 +15,9 @@ https://discord.gg/mvvR3SqVHV
 2. Start the "Wwise Launcher", login and install the latest version of Wwise. You can unselect all optional features - we just need Wwise
 3. Install the Unreal Engine 5 through the Epic Games Store launcher. This is required to unpack the .pak file from Oblivion Remastered
 
-# Build and installation steps
-1. Update the three paths at the beginning of the .bat file with the updated ones from the requirements that you just installed
-2. Run the .bat script
+# Build steps and installation steps
+1. Update the three paths at the beginning of the "paths.bat" file with the updated ones from the requirements that you just installed
+2. Run the "build_oblivion_remastered_german_voices.bat" script
 3. Be patient. It takes about 60 minutes to build this mod.
 4. Some errors like "panic: open [..]/Event/English(US)/Play_*.bnk are expected and just mean that a German voice file couldn't be mapped to a BNK
 5. Copy the the files from the built "ModFiles\" folder to your installation of Oblivion Remastered
