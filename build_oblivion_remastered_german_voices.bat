@@ -8,11 +8,13 @@ if not exist "%DIRECTORY_ORIGINAL%" (
     echo ERROR: Could not find Oblivion with the given path
     pause
     exit
-) else if not exist "%DIRECTORY_OBRE%" (
+)
+if not exist "%DIRECTORY_OBRE%" (
     echo ERROR: Could not find Oblivion Remastered with the given path
     pause
     exit
-) else if not exist "%UNREAL_BIN_DIR%"(
+)
+if not exist "%UNREAL_BIN_DIR%" (
     echo ERROR: Could not find Unreal Engine with the given path
     pause
     exit

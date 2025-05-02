@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string) {
+func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string, isVideo string) {
 	pattern := []byte{0x01, 0x00, 0x14, 0x00}  // Codec: OPUS_WEM
 	newCodec := []byte{0x01, 0x00, 0x04, 0x00} // Codec: VORBIS
 	// Find the pattern in the file:
@@ -53,6 +53,9 @@ func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string) {
 	binary.LittleEndian.PutUint32(bnk[fileSizeOffset:fileSizeOffset+4], wemSize)
 	// write the modified .bnk file to the output folder
 	outBnkPath := "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
+	if isVideo == "true" {
+		outBnkPath = "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Event/" + filepath.Base(bnkPath)
+	}
 	err = os.WriteFile(outBnkPath, bnk, 0644)
 	if err != nil {
 		log.Fatalf("Failed to write modified .bnk file: %v\n", err)
@@ -64,6 +67,9 @@ func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string) {
 		log.Fatalf("Failed to read .wem file: %v\n", err)
 	}
 	outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
+	if isVideo == "true" {
+		outWemPath = "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Media/" + strconv.Itoa(int(id)) + ".wem"
+	}
 	err = os.WriteFile(outWemPath, wem, 0644)
 	if err != nil {
 		log.Fatalf("Failed to write .wem file: %v\n", err)
@@ -90,7 +96,7 @@ func main() {
 			return
 		}
 
-		create_bnk(bnkName, bnkPath, bnk, wemPath)
+		create_bnk(bnkName, bnkPath, bnk, wemPath, "true")
 	} else {
 		raceComb := comps[0]
 
@@ -145,7 +151,7 @@ func main() {
 					log.Printf("Skipping missing BNK: %s (err: %v)", bnkPath, err)
 					continue
 				}
-				create_bnk(bnkName, bnkPath, bnk, wemPath)
+				create_bnk(bnkName, bnkPath, bnk, wemPath, "false")
 			}
 		}
 	}
