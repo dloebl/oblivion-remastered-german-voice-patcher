@@ -1,3 +1,4 @@
+@echo off
 chcp 1252
 call "%~dp0paths.bat"
 call "%~dp0scripts\settings.bat"
@@ -43,6 +44,22 @@ set "DLC_1_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCHorseArmor.bsa"
 set "DLC_2_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCOrrery.bsa"
 set "DLC_3_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCThievesDen.bsa"
 set "DLC_4_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCVilelair.bsa"
+
+if not exist "%VOICES_1_BSA_ORIGINAL%" (
+    echo ERROR: Could not find .bsa files of Oblivion with the given path. This probably means that you did not set the correct path in the 'paths.bat' file
+    pause
+    exit
+)
+if not exist "%VOICES_1_BSA_OBRE%" (
+    echo ERROR: Could not find .bsa files of Oblivion Remastered with the given path. This probably means that you did not set the correct path in the 'paths.bat' file
+    pause
+    exit
+)
+if not exist "%UNREAL_BIN_DIR%\UnrealPak.exe" (
+    echo ERROR: Could not find Unreal Engine with the given path. This probably means that you did not set to correct path in the 'paths.bat' file
+    pause
+    exit
+)
 
 if exist "%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak" (
     :: Steam Version
