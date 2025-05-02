@@ -14,6 +14,9 @@ import (
 
 func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string, isVideo string) {
 	pattern := []byte{0x01, 0x00, 0x14, 0x00}  // Codec: OPUS_WEM
+	if isVideo == "true" {
+		pattern = []byte{0x01, 0x00, 0x01, 0x00} // Codec: PCM
+	}
 	newCodec := []byte{0x01, 0x00, 0x04, 0x00} // Codec: VORBIS
 	// Find the pattern in the file:
 	// Quick and dirty approach to patch the BNKs
