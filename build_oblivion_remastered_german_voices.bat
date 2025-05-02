@@ -1,3 +1,4 @@
+@echo off
 chcp 1252
 call "%~dp0paths.bat"
 call "%~dp0scripts\settings.bat"
