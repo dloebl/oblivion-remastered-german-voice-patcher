@@ -85,15 +85,7 @@ mkdir "%RESULT_FOLDER_PAK%\"
 
 if not exist "%RESULT_FOLDER_DATA%\sound" (
     :: Extract the remaster .bsa files with VO
-    .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-    .\BSArch\BSArch.exe unpack "%VOICES_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-    .\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-    .\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-
-    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-    .\BSArch\BSArch.exe unpack "%DLC_3_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
-    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_OBRE%" "%RESULT_FOLDER_DATA%\" -mt
+    .\BSArch\bsa-multi.exe -o "%RESULT_FOLDER_DATA%\" "%VOICES_1_BSA_OBRE%" "%VOICES_2_BSA_OBRE%" "%SHIVERING_ISLES_BSA_OBRE%" "%KNIGHTS_BSA_OBRE%" "%DLC_1_BSA_OBRE%" "%DLC_2_BSA_OBRE%" "%DLC_3_BSA_OBRE%" "%DLC_4_BSA_OBRE%"
 
     :: We only need mp3 files from sound/voice
     rd /s /q "%RESULT_FOLDER_DATA%\meshes"
@@ -110,16 +102,7 @@ if not exist "%RESULT_FOLDER_DATA%\sound" (
 
 if not exist "%TMP_DIR%\sound" (
     :: Extract the original MP3s from all original .bsa voice files
-    .\BSArch\BSArch.exe unpack "%VOICES_1_BSA_ORIGINAL%" tmp\ -mt
-    .\BSArch\BSArch.exe unpack "%VOICES_2_BSA_ORIGINAL%" tmp\ -mt
-    .\BSArch\BSArch.exe unpack "%SHIVERING_ISLES_BSA_ORIGINAL%" tmp\ -mt
-    .\BSArch\BSArch.exe unpack "%KNIGHTS_BSA_ORIGINAL%" tmp\ -mt
-    
-    :: Optional: DLCs
-    .\BSArch\BSArch.exe unpack "%DLC_1_BSA_ORIGINAL%" "%TMP_DIR%" -mt
-    .\BSArch\BSArch.exe unpack "%DLC_2_BSA_ORIGINAL%" "%TMP_DIR%" -mt
-    .\BSArch\BSArch.exe unpack "%DLC_3_BSA_ORIGINAL%" "%TMP_DIR%" -mt
-    .\BSArch\BSArch.exe unpack "%DLC_4_BSA_ORIGINAL%" "%TMP_DIR%" -mt
+    .\BSArch\bsa-multi.exe -o "%TMP_DIR%" "%VOICES_1_BSA_ORIGINAL%" "%VOICES_2_BSA_ORIGINAL%" "%SHIVERING_ISLES_BSA_ORIGINAL%" "%KNIGHTS_BSA_ORIGINAL%" "%DLC_1_BSA_ORIGINAL%" "%DLC_2_BSA_ORIGINAL%" "%DLC_3_BSA_ORIGINAL%" "%DLC_4_BSA_ORIGINAL%"
 
     :: Custom voice lines
     :: .\BSArch\BSArch.exe unpack "%CUSTOM_BSA%" tmp\ -mt
