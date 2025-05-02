@@ -5,4 +5,4 @@ set EXECUTE_MP3_DIFF_SCRIPT="false"
 set REMOVE_TEMP_FILES="true"
 
 :: Current version of the patcher
-set "VERSION_NUMBER=0.4.1"
+set "VERSION_NUMBER=0.4.2"

@@ -55,9 +55,9 @@ func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string, isVi
 	}
 	binary.LittleEndian.PutUint32(bnk[fileSizeOffset:fileSizeOffset+4], wemSize)
 	// write the modified .bnk file to the output folder
-	outBnkPath := "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
+	outBnkPath := "german-voices-oblivion-remastered-voxmeld_v0.4.2_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
 	if isVideo == "true" {
-		outBnkPath = "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Event/" + filepath.Base(bnkPath)
+		outBnkPath = "german-voices-oblivion-remastered-voxmeld_v0.4.2_P/Content/WwiseAudio/Event/" + filepath.Base(bnkPath)
 	}
 	err = os.WriteFile(outBnkPath, bnk, 0644)
 	if err != nil {
@@ -69,9 +69,9 @@ func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string, isVi
 	if err != nil {
 		log.Fatalf("Failed to read .wem file: %v\n", err)
 	}
-	outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
+	outWemPath := "german-voices-oblivion-remastered-voxmeld_v0.4.2_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
 	if isVideo == "true" {
-		outWemPath = "german-voices-oblivion-remastered-voxmeld_v0.4.1_P/Content/WwiseAudio/Media/" + strconv.Itoa(int(id)) + ".wem"
+		outWemPath = "german-voices-oblivion-remastered-voxmeld_v0.4.2_P/Content/WwiseAudio/Media/" + strconv.Itoa(int(id)) + ".wem"
 	}
 	err = os.WriteFile(outWemPath, wem, 0644)
 	if err != nil {

@@ -229,7 +229,7 @@ func main() {
 	// Animation für den Fortschrittsindikator
 	done := make(chan bool)
 	go func() {
-		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		spinner := []string{"-", "\\", "|", "/"}
 		i := 0
 		for {
 			select {

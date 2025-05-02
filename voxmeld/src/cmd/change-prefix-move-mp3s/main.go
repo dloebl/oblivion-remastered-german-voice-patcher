@@ -20,7 +20,7 @@ var prefixMappings = map[string]struct {
 	oldPath string
 	newPath string
 }{
-	"oblivion.esm": {
+	"oblivion.esm_argonier": {
 		"tmp/sound/voice/oblivion.esm/argonier",
 		"tmp/sound/voice/oblivion.esm/argonian",
 	},
@@ -36,7 +36,15 @@ var prefixMappings = map[string]struct {
 		"tmp/sound/voice/oblivion.esm/rothwardone",
 		"tmp/sound/voice/oblivion.esm/redguard",
 	},
-	"knights.esp": {
+	"oblivion.esm_dunkler": {
+		"tmp/sound/voice/oblivion.esm/dunkler verführer",
+		"tmp/sound/voice/oblivion.esm/dark_seducer",
+	},
+	"oblivion.esm_goldener": {
+		"tmp/sound/voice/oblivion.esm/goldener heiliger",
+		"tmp/sound/voice/oblivion.esm/golden_saint",
+	},
+	"knights.esp_argonier": {
 		"tmp/sound/voice/knights.esp/argonier",
 		"tmp/sound/voice/knights.esp/argonian",
 	},
@@ -52,13 +60,33 @@ var prefixMappings = map[string]struct {
 		"tmp/sound/voice/knights.esp/rothwardone",
 		"tmp/sound/voice/knights.esp/redguard",
 	},
-	"oblivion.esm_dunkler": {
-		"tmp/sound/voice/oblivion.esm/dunkler verführer",
-		"tmp/sound/voice/oblivion.esm/dark_seducer",
+	"dlcvilelair.esp_hochelf": {
+		"tmp/sound/voice/dlcvilelair.esp/hochelf",
+		"tmp/sound/voice/dlcvilelair.esp/high_elf",
 	},
-	"oblivion.esm_goldener": {
-		"tmp/sound/voice/oblivion.esm/goldener heiliger",
-		"tmp/sound/voice/oblivion.esm/golden_saint",
+	"dlcvilelair.esp_kaiserlicher": {
+		"tmp/sound/voice/dlcvilelair.esp/kaiserlicher",
+		"tmp/sound/voice/dlcvilelair.esp/imperial",
+	},
+	"dlcthievesden.esp_argonier": {
+		"tmp/sound/voice/dlcthievesden.esp/argonier",
+		"tmp/sound/voice/dlcthievesden.esp/argonian",
+	},
+	"dlcthievesden.esp_hochelf": {
+		"tmp/sound/voice/dlcthievesden.esp/hochelf",
+		"tmp/sound/voice/dlcthievesden.esp/high_elf",
+	},
+	"dlcthievesden.esp_kaiserlicher": {
+		"tmp/sound/voice/dlcthievesden.esp/kaiserlicher",
+		"tmp/sound/voice/dlcthievesden.esp/imperial",
+	},
+	"dlcthievesden.esp_rothwardone": {
+		"tmp/sound/voice/dlcthievesden.esp/rothwardone",
+		"tmp/sound/voice/dlcthievesden.esp/redguard",
+	},
+	"dlcorrery.esp_hochelf": {
+		"tmp/sound/voice/dlcorrery.esp/hochelf",
+		"tmp/sound/voice/dlcorrery.esp/high_elf",
 	},
 }
 
