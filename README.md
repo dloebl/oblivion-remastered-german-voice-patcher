@@ -5,7 +5,6 @@ https://discord.gg/mvvR3SqVHV
 # Important notes
 - You have to own both Oblivion Remastered as well as the original German version of Oblivion
 - Some voices are still in English. This will be improved in a future version
-- Some voices might not play at all right now. This will be improved in a future version as well
 - The build process is quite slow right now (some parts are still very inefficent)
 - Lipsync still uses the English version
 - Further development of this mod will take place here on GitHub and mirrored to Nexus Mods: https://www.nexusmods.com/oblivionremastered/mods/1092
@@ -35,3 +34,4 @@ The following tools also have been very useful during development of this mod:
 - foobar2000: https://www.foobar2000.org/
 - vgmstream: https://github.com/vgmstream/vgmstream
 - hexer: https://gitlab.com/hexer/hexer
+- ReadyOrNot UE5 modding guide: https://unofficial-modding-guide.com/posts/thebasics/#creating-a-pak-file
