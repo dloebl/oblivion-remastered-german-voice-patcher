@@ -106,21 +106,44 @@ func main() {
 	
 	// Parse Kommandozeilenargumente
 	parallel := flag.Int("p", runtime.NumCPU(), "Anzahl der parallel zu verarbeitenden Dateien")
-	outputDir := flag.String("o", "", "Ausgabeverzeichnis für entpackte Dateien")
-	flag.Parse()
+	outputDir := flag.String("o", "", "Ausgabeverzeichnis für alle entpackten Dateien")
 	
-	// Überprüfe Ausgabeverzeichnis
-	if *outputDir == "" {
-		fmt.Println("Fehler: Kein Ausgabeverzeichnis angegeben (-o)")
-		fmt.Println("Verwendung: bsaextract -o AUSGABEVERZEICHNIS [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
-		os.Exit(1)
+	// Definiere spezifische Ausgabeverzeichnisse für nummerierte Dateien
+	maxDirs := 20 // Maximale Anzahl von spezifischen Ausgabeverzeichnissen
+	outputDirs := make([]*string, maxDirs)
+	for i := 1; i <= maxDirs; i++ {
+		outputDirs[i-1] = flag.String(fmt.Sprintf("o%d", i), "", fmt.Sprintf("Ausgabeverzeichnis für die %d. Datei", i))
 	}
+	
+	flag.Parse()
 	
 	// Überprüfe, ob Dateien angegeben wurden
 	dateien := flag.Args()
 	if len(dateien) == 0 {
 		fmt.Println("Fehler: Keine BSA-Dateien angegeben")
 		fmt.Println("Verwendung: bsaextract -o AUSGABEVERZEICHNIS [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
+		fmt.Println("Oder: bsaextract -o1 AUSGABEVERZEICHNIS1 -o2 AUSGABEVERZEICHNIS2 ... [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
+		os.Exit(1)
+	}
+	
+	// Überprüfe Ausgabeverzeichnis(se)
+	hatAusgabeverzeichnis := false
+	if *outputDir != "" {
+		hatAusgabeverzeichnis = true
+	} else {
+		// Prüfe, ob spezifische Ausgabeverzeichnisse angegeben wurden
+		for i := 0; i < len(dateien) && i < maxDirs; i++ {
+			if *outputDirs[i] != "" {
+				hatAusgabeverzeichnis = true
+				break
+			}
+		}
+	}
+	
+	if !hatAusgabeverzeichnis {
+		fmt.Println("Fehler: Kein Ausgabeverzeichnis angegeben (-o oder -o1, -o2, ...)")
+		fmt.Println("Verwendung: bsaextract -o AUSGABEVERZEICHNIS [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
+		fmt.Println("Oder: bsaextract -o1 AUSGABEVERZEICHNIS1 -o2 AUSGABEVERZEICHNIS2 ... [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
 		os.Exit(1)
 	}
 	
@@ -139,10 +162,21 @@ func main() {
 		}
 	}
 	
-	// Stelle sicher, dass das Ausgabeverzeichnis existiert
-	if err := os.MkdirAll(*outputDir, 0755); err != nil {
-		fmt.Printf("Fehler beim Erstellen des Ausgabeverzeichnisses %s: %v\n", *outputDir, err)
-		os.Exit(1)
+	// Stelle sicher, dass alle nötigen Ausgabeverzeichnisse existieren
+	if *outputDir != "" {
+		if err := os.MkdirAll(*outputDir, 0755); err != nil {
+			fmt.Printf("Fehler beim Erstellen des Ausgabeverzeichnisses %s: %v\n", *outputDir, err)
+			os.Exit(1)
+		}
+	}
+	
+	for i := 0; i < len(dateien) && i < maxDirs; i++ {
+		if *outputDirs[i] != "" {
+			if err := os.MkdirAll(*outputDirs[i], 0755); err != nil {
+				fmt.Printf("Fehler beim Erstellen des Ausgabeverzeichnisses %s: %v\n", *outputDirs[i], err)
+				os.Exit(1)
+			}
+		}
 	}
 	
 	// Finde BSArch.exe
@@ -154,7 +188,7 @@ func main() {
 	}
 	
 	fmt.Printf("BSArch.exe gefunden: %s\n", bsaarchPath)
-	fmt.Printf("Extrahiere %d Dateien nach %s (max. %d parallel)\n", len(dateien), *outputDir, *parallel)
+	fmt.Printf("Extrahiere %d Dateien (max. %d parallel)\n", len(dateien), *parallel)
 	
 	// Parallelverarbeitung einrichten
 	var wg sync.WaitGroup
@@ -194,31 +228,45 @@ func main() {
 	}()
 	
 	// Verarbeite alle Dateien
-	for _, datei := range dateien {
+	for i, datei := range dateien {
 		wg.Add(1)
-		go func(dateiname string) {
+		go func(index int, dateiname string) {
 			defer wg.Done()
 			
 			// Semaphore erwerben
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 			
-			// Führe Extraktion durch
-			err := extrahiereBsa(bsaarchPath, dateiname, *outputDir)
+			// Bestimme das Zielverzeichnis
+			zielverzeichnis := *outputDir
+			// Wenn ein spezifisches Ausgabeverzeichnis für diese Datei vorhanden ist, verwende es
+			if index < maxDirs && *outputDirs[index] != "" {
+				zielverzeichnis = *outputDirs[index]
+			}
 			
-			// Ergebnis speichern (thread-sicher)
-			mutex.Lock()
-			
-			if err != nil {
-				fehler = append(fehler, dateiname)
+			// Führe Extraktion durch, aber nur wenn ein Zielverzeichnis definiert ist
+			if zielverzeichnis == "" {
+				mutex.Lock()
+				fehler = append(fehler, fmt.Sprintf("%s (kein Ausgabeverzeichnis angegeben)", dateiname))
+				mutex.Unlock()
 			} else {
-				erfolge = append(erfolge, dateiname)
+				err := extrahiereBsa(bsaarchPath, dateiname, zielverzeichnis)
+				
+				// Ergebnis speichern (thread-sicher)
+				mutex.Lock()
+				
+				if err != nil {
+					fehler = append(fehler, fmt.Sprintf("%s (%v)", dateiname, err))
+				} else {
+					erfolge = append(erfolge, fmt.Sprintf("%s -> %s", dateiname, zielverzeichnis))
+				}
+				
+				mutex.Unlock()
 			}
 			
 			// Aktualisiere Fortschrittsbalken
 			atomic.AddInt32(&erledigt, 1)
-			mutex.Unlock()
-		}(datei)
+		}(i, datei)
 	}
 	
 	// Warte auf Abschluss aller Extraktionen
