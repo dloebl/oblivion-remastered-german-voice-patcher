@@ -1,6 +1,6 @@
 # Discord Server
 Join the Discord server to stay up to date on the future development of this patcher:
-https://discord.gg/mvvR3SqVHV
+https://discord.gg/TVfn6xkBhB
 
 # Important notes
 - You have to own both Oblivion Remastered as well as the original German version of Oblivion
