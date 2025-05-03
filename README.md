@@ -12,7 +12,7 @@ https://discord.gg/TVfn6xkBhB
 # Requirements
 1. Install the Audiokinetic Wwise Launcher: https://www.audiokinetic.com/en/wwise/overview/. You'll have to create an Audiokinetic account for this. The free trial version is sufficient - you don't have to purchase a license for this to work
 2. Start the "Wwise Launcher", login and install the latest version of Wwise. You can unselect all optional features - we just need Wwise
-3. Install the Unreal Engine 5 through the Epic Games Store launcher. This is required to unpack the .pak file from Oblivion Remastered
+3. Install the Unreal Engine 5 through the Epic Games Store launcher. This is required to unpack the .pak file from Oblivion Remastered (you'll have to create an Epic Games account for this)
 
 # Build steps and installation steps
 1. Open "paths.bat" with a text editor and update the three paths at the beginning of the file with the updated ones from the requirements that you just installed
