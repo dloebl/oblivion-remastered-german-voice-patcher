@@ -121,8 +121,8 @@ func main() {
 	dateien := flag.Args()
 	if len(dateien) == 0 {
 		fmt.Println("Fehler: Keine BSA-Dateien angegeben")
-		fmt.Println("Verwendung: bsaextract -o AUSGABEVERZEICHNIS [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
-		fmt.Println("Oder: bsaextract -o1 AUSGABEVERZEICHNIS1 -o2 AUSGABEVERZEICHNIS2 ... [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
+		fmt.Println("Verwendung: bsa-multi.exe -o AUSGABEVERZEICHNIS [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
+		fmt.Println("Oder: bsa-multi.exe -o1 AUSGABEVERZEICHNIS1 -o2 AUSGABEVERZEICHNIS2 ... [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
 		os.Exit(1)
 	}
 	
@@ -142,8 +142,8 @@ func main() {
 	
 	if !hatAusgabeverzeichnis {
 		fmt.Println("Fehler: Kein Ausgabeverzeichnis angegeben (-o oder -o1, -o2, ...)")
-		fmt.Println("Verwendung: bsaextract -o AUSGABEVERZEICHNIS [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
-		fmt.Println("Oder: bsaextract -o1 AUSGABEVERZEICHNIS1 -o2 AUSGABEVERZEICHNIS2 ... [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
+		fmt.Println("Verwendung: bsa-multi.exe -o AUSGABEVERZEICHNIS [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
+		fmt.Println("Oder: bsa-multi.exe -o1 AUSGABEVERZEICHNIS1 -o2 AUSGABEVERZEICHNIS2 ... [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
 		os.Exit(1)
 	}
 	
