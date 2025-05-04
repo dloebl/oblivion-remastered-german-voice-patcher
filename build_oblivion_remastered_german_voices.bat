@@ -220,7 +220,7 @@ if %EXECUTE_MP3_DIFF_SCRIPT% == "true" (
 )
 
 :: Final step. Build the mod PAK file
-cmd /c .\scripts\create_pak.bat "%CD%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\"
+cmd /c .\voxmeld\create-pak.exe .\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\
 
 set size=0
 if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak" (
