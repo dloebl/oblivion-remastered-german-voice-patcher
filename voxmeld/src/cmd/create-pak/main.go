@@ -11,16 +11,14 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: create-pak <directory>")
-		os.Exit(1)
+		log.Fatal("Usage: create-pak <directory>")
 	}
 	// Get the input directory from command line arguments
 	inputDir := os.Args[1]
 	// Get the working directory
 	workingDir, err := os.Getwd()
 	if err != nil {
-		fmt.Printf("Error getting working directory: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error getting working directory: %v\n", err)
 	}
 	// Load bin path from environment
 	unrealBinDir := os.Getenv("UNREAL_BIN_DIR")
@@ -40,8 +38,7 @@ func main() {
 	// Create file list
 	err = createFileList(inputDir, fileList)
 	if err != nil {
-		fmt.Printf("Error creating file list: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error creating file list: %v\n", err)
 	}
 
 	// Run UnrealPak
@@ -62,8 +59,7 @@ func main() {
 	fmt.Println("Creating PAK file...")
 	err = cmd.Run()
 	if err != nil {
-		fmt.Printf("Error running UnrealPak: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error running UnrealPak: %v\n", err)
 	}
 
 	fmt.Println("PAK file created successfully.")
