@@ -150,6 +150,9 @@ func main() {
 	}
 	
 	// Überprüfe Dateierweiterungen
+	var gültigeDateien []string
+	var nichtExistierendeDateien []string
+	
 	for _, datei := range dateien {
 		if filepath.Ext(datei) != ".bsa" {
 			fmt.Printf("Fehler: %s ist keine .bsa-Datei\n", datei)
@@ -157,12 +160,23 @@ func main() {
 			os.Exit(1)
 		}
 		
-		// Prüfe zusätzlich, ob die Datei existiert
+		// Prüfe, ob die Datei existiert
 		if _, err := os.Stat(datei); os.IsNotExist(err) {
-			fmt.Printf("Fehler: Datei %s existiert nicht\n", datei)
-			os.Exit(1)
+			fmt.Printf("Warnung: Datei %s existiert nicht. Diese wird übersprungen.\n", datei)
+			nichtExistierendeDateien = append(nichtExistierendeDateien, datei)
+		} else {
+			gültigeDateien = append(gültigeDateien, datei)
 		}
 	}
+	
+	// Falls keine gültigen Dateien gefunden wurden
+	if len(gültigeDateien) == 0 {
+		fmt.Println("Fehler: Keine der angegebenen BSA-Dateien existiert")
+		os.Exit(1)
+	}
+	
+	// Aktualisiere die Liste der zu verarbeitenden Dateien
+	dateien = gültigeDateien
 	
 	// Stelle sicher, dass alle nötigen Ausgabeverzeichnisse existieren
 	if *outputDir != "" {
@@ -346,6 +360,15 @@ func main() {
 	
 	// Zeige Zusammenfassung an
 	fmt.Println("\n=== Zusammenfassung ===")
+	
+	// Zeige übersprungene nicht existierende Dateien
+	if len(nichtExistierendeDateien) > 0 {
+		fmt.Printf("\nÜbersprungene nicht existierende Dateien (%d):\n", len(nichtExistierendeDateien))
+		for i, datei := range nichtExistierendeDateien {
+			fmt.Printf("%d. %s\n", i+1, datei)
+		}
+	}
+	
 	fmt.Printf("Erfolgreich extrahierte Dateien (%d):\n", len(erfolge))
 	for i, datei := range erfolge {
 		fmt.Printf("%d. %s\n", i+1, datei)
@@ -369,7 +392,12 @@ func main() {
 		
 		os.Exit(1)
 	} else {
-		fmt.Println("\nAlle Extraktionen erfolgreich abgeschlossen!")
+		if len(nichtExistierendeDateien) > 0 {
+			fmt.Println("\nAlle vorhandenen Extraktionen erfolgreich abgeschlossen!")
+			fmt.Printf("(Es wurden %d nicht existierende Dateien übersprungen)\n", len(nichtExistierendeDateien))
+		} else {
+			fmt.Println("\nAlle Extraktionen erfolgreich abgeschlossen!")
+		}
 		fmt.Printf("Gesamtzeit: %s\n", gesamtZeit)
 	}
 }
