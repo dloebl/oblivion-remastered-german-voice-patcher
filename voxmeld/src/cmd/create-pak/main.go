@@ -33,7 +33,10 @@ func main() {
 
 	// Create ModFiles directory structure if it doesn't exist
 	modDir := filepath.Dir(outPak)
-	os.MkdirAll(modDir, 0755)
+	err = os.MkdirAll(modDir, 0755)
+	if err != nil {
+		log.Fatalf("Error creating directory %q: %v\n", modDir, err)
+	}
 
 	// Create file list
 	err = createFileList(inputDir, fileList)
