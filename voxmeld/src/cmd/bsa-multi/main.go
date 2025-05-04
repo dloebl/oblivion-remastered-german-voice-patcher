@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -107,6 +108,7 @@ func main() {
 	// Parse Kommandozeilenargumente
 	parallel := flag.Int("p", runtime.NumCPU(), "Anzahl der parallel zu verarbeitenden Dateien")
 	outputDir := flag.String("o", "", "Ausgabeverzeichnis für alle entpackten Dateien")
+	maxRetries := flag.Int("retries", 3, "Anzahl der Wiederholungsversuche für fehlgeschlagene Extraktionen")
 	
 	// Definiere spezifische Ausgabeverzeichnisse für nummerierte Dateien
 	maxDirs := 20 // Maximale Anzahl von spezifischen Ausgabeverzeichnissen
@@ -203,78 +205,133 @@ func main() {
 	var erledigt int32
 	var fortschrittsMutex sync.Mutex
 	gesamtAnzahl := len(dateien)
+	var animationsZähler int
 	
 	// Zeige initialen Fortschrittsbalken
 	fmt.Println("Starte Extraktionen:")
 	
-	// Starte Animation im Hintergrund
-	animationsStopp := make(chan struct{})
-	var animationsZähler int
-	go func() {
-		ticker := time.NewTicker(100 * time.Millisecond)
-		defer ticker.Stop()
-		
-		for {
-			select {
-			case <-ticker.C:
-				fortschrittsMutex.Lock()
-				animationsZähler++
-				zeichneAnimiertenFortschrittsbalken(int(atomic.LoadInt32(&erledigt)), gesamtAnzahl, startZeit, animationsZähler)
-				fortschrittsMutex.Unlock()
-			case <-animationsStopp:
-				return
-			}
-		}
-	}()
-	
 	// Verarbeite alle Dateien
-	for i, datei := range dateien {
-		wg.Add(1)
-		go func(index int, dateiname string) {
-			defer wg.Done()
+	prozessiereDateien := func(dateienZuVerarbeiten []string, dateienIndizes []int, istWiederholung bool) []string {
+		var fehlgeschlagen []string
+		
+		// Starte Animation im Hintergrund
+		animationsStopp := make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(100 * time.Millisecond)
+			defer ticker.Stop()
 			
-			// Semaphore erwerben
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
-			
-			// Bestimme das Zielverzeichnis
-			zielverzeichnis := *outputDir
-			// Wenn ein spezifisches Ausgabeverzeichnis für diese Datei vorhanden ist, verwende es
-			if index < maxDirs && *outputDirs[index] != "" {
-				zielverzeichnis = *outputDirs[index]
+			for {
+				select {
+				case <-ticker.C:
+					fortschrittsMutex.Lock()
+					animationsZähler++
+					zeichneAnimiertenFortschrittsbalken(int(atomic.LoadInt32(&erledigt)), gesamtAnzahl, startZeit, animationsZähler)
+					fortschrittsMutex.Unlock()
+				case <-animationsStopp:
+					return
+				}
 			}
-			
-			// Führe Extraktion durch, aber nur wenn ein Zielverzeichnis definiert ist
-			if zielverzeichnis == "" {
-				mutex.Lock()
-				fehler = append(fehler, fmt.Sprintf("%s (kein Ausgabeverzeichnis angegeben)", dateiname))
-				mutex.Unlock()
-			} else {
-				err := extrahiereBsa(bsaarchPath, dateiname, zielverzeichnis)
+		}()
+		
+		for i, datei := range dateienZuVerarbeiten {
+			wg.Add(1)
+			go func(index int, dateiIndex int, dateiname string) {
+				defer wg.Done()
 				
-				// Ergebnis speichern (thread-sicher)
-				mutex.Lock()
+				// Semaphore erwerben
+				semaphore <- struct{}{}
+				defer func() { <-semaphore }()
 				
-				if err != nil {
-					fehler = append(fehler, fmt.Sprintf("%s (%v)", dateiname, err))
-				} else {
-					erfolge = append(erfolge, fmt.Sprintf("%s -> %s", dateiname, zielverzeichnis))
+				// Bestimme das Zielverzeichnis
+				zielverzeichnis := *outputDir
+				// Wenn ein spezifisches Ausgabeverzeichnis für diese Datei vorhanden ist, verwende es
+				if dateiIndex < maxDirs && *outputDirs[dateiIndex] != "" {
+					zielverzeichnis = *outputDirs[dateiIndex]
 				}
 				
-				mutex.Unlock()
-			}
-			
-			// Aktualisiere Fortschrittsbalken
-			atomic.AddInt32(&erledigt, 1)
-		}(i, datei)
+				// Führe Extraktion durch, aber nur wenn ein Zielverzeichnis definiert ist
+				if zielverzeichnis == "" {
+					mutex.Lock()
+					fehler = append(fehler, fmt.Sprintf("%s (kein Ausgabeverzeichnis angegeben)", dateiname))
+					if !istWiederholung {
+						fehlgeschlagen = append(fehlgeschlagen, dateiname)
+					}
+					mutex.Unlock()
+				} else {
+					err := extrahiereBsa(bsaarchPath, dateiname, zielverzeichnis)
+					
+					// Ergebnis speichern (thread-sicher)
+					mutex.Lock()
+					
+					if err != nil {
+						fehler = append(fehler, fmt.Sprintf("%s (%v)", dateiname, err))
+						if !istWiederholung {
+							fehlgeschlagen = append(fehlgeschlagen, dateiname)
+						}
+					} else {
+						erfolge = append(erfolge, fmt.Sprintf("%s -> %s", dateiname, zielverzeichnis))
+					}
+					
+					mutex.Unlock()
+				}
+				
+				// Aktualisiere Fortschrittsbalken
+				atomic.AddInt32(&erledigt, 1)
+			}(i, dateienIndizes[i], datei)
+		}
+		
+		// Warte auf Abschluss aller Extraktionen
+		wg.Wait()
+		
+		// Animationsschleife stoppen
+		close(animationsStopp)
+		time.Sleep(200 * time.Millisecond) // Kurz warten, damit die Animation sauber beendet wird
+		
+		return fehlgeschlagen
+	}
+
+	// Erste Durchführung mit allen Dateien
+	dateienIndizes := make([]int, len(dateien))
+	for i := range dateienIndizes {
+		dateienIndizes[i] = i
 	}
 	
-	// Warte auf Abschluss aller Extraktionen
-	wg.Wait()
+	fehlgeschlagen := prozessiereDateien(dateien, dateienIndizes, false)
 	
-	// Animationsschleife stoppen
-	close(animationsStopp)
-	time.Sleep(200 * time.Millisecond) // Kurz warten, damit die Animation sauber beendet wird
+	// Wiederholungsversuche für fehlgeschlagene Dateien
+	wiederholungszähler := 0
+	for wiederholungszähler < *maxRetries && len(fehlgeschlagen) > 0 {
+		wiederholungszähler++
+		fmt.Printf("\n\nFehler bei %d Dateien festgestellt. Warte 3 Sekunden vor dem Wiederholungsversuch...\n", 
+			len(fehlgeschlagen))
+		
+		// Warte 3 Sekunden vor dem Wiederholungsversuch
+		for countdown := 3; countdown > 0; countdown-- {
+			fmt.Printf("\rWiederholungsversuch startet in %d Sekunden...", countdown)
+			time.Sleep(1 * time.Second)
+		}
+		
+		fmt.Printf("\rWiederholungsversuch %d von %d für %d fehlgeschlagene Dateien...\n", 
+			wiederholungszähler, *maxRetries, len(fehlgeschlagen))
+		
+		// Zurücksetzen des Fortschrittsbalkens für die Wiederholungsversuche
+		erledigt = 0
+		gesamtAnzahl = len(fehlgeschlagen)
+		
+		// Erstelle die entsprechenden Indizes
+		fehlgeschlagenIndizes := make([]int, len(fehlgeschlagen))
+		for i, fehlDatei := range fehlgeschlagen {
+			for j, originalDatei := range dateien {
+				if fehlDatei == originalDatei {
+					fehlgeschlagenIndizes[i] = j
+					break
+				}
+			}
+		}
+		
+		// Führe die fehlgeschlagenen Dateien erneut aus
+		fehlgeschlagen = prozessiereDateien(fehlgeschlagen, fehlgeschlagenIndizes, true)
+	}
 	
 	// Zeige finalen Fortschrittsbalken
 	fortschrittsMutex.Lock()
@@ -300,6 +357,16 @@ func main() {
 			fmt.Printf("%d. %s\n", i+1, datei)
 		}
 		fmt.Printf("\nGesamtzeit: %s\n", gesamtZeit)
+		
+		// Wenn nach allen Wiederholungsversuchen immer noch Fehler bestehen, pausiere das Programm
+		if len(fehlgeschlagen) > 0 {
+			fmt.Println("\n\nNach allen Wiederholungsversuchen bestehen immer noch Fehler.")
+			fmt.Println("Drücken Sie Enter, um das Programm zu beenden...")
+			
+			// Warte auf Benutzereingabe
+			bufio.NewReader(os.Stdin).ReadBytes('\n')
+		}
+		
 		os.Exit(1)
 	} else {
 		fmt.Println("\nAlle Extraktionen erfolgreich abgeschlossen!")
