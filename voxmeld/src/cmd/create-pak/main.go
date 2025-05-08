@@ -29,7 +29,7 @@ func main() {
 
 	// Define file paths
 	fileList := filepath.Join(workingDir, "tmp", "filelist.txt")
-	outPak := filepath.Join(workingDir, "ModFiles", "Content", "Paks", "~mods", "german-voices-oblivion-remastered-voxmeld_v0.4.2_P.pak")
+	outPak := filepath.Join(workingDir, "ModFiles", "Content", "Paks", "~mods", "german-voices-oblivion-remastered-voxmeld_v0.4.3_P.pak")
 
 	// Create ModFiles directory structure if it doesn't exist
 	modDir := filepath.Dir(outPak)
