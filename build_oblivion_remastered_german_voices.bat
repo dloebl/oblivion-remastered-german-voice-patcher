@@ -15,11 +15,6 @@ if not exist "%DIRECTORY_OBRE%" (
     pause
     exit
 )
-if not exist "%UNREAL_BIN_DIR%" (
-    echo ERROR: Could not find Unreal Engine with the given path
-    pause
-    exit
-)
 
 set "VOICES_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices1.bsa"
 set "VOICES_2_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices2.bsa"
@@ -55,11 +50,7 @@ if not exist "%VOICES_1_BSA_OBRE%" (
     pause
     exit
 )
-if not exist "%UNREAL_BIN_DIR%\UnrealPak.exe" (
-    echo ERROR: Could not find Unreal Engine with the given path. This probably means that you did not set to correct path in the 'paths.bat' file
-    pause
-    exit
-)
+
 
 if exist "%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak" (
     :: Steam Version
@@ -127,7 +118,8 @@ if not exist "%TMP_DIR%\sound" (
 
 if not exist "%TMP_DIR%\pak" (
     :: Extract the BNKs from the OblivionRemastered-Windows.pak
-    "%UNREAL_BIN_DIR%\UnrealPak.exe" -Extract "%OBRE_PAK%" "%TMP_DIR%\pak"
+    echo Extracting Pak file from the Oblivion Remastered...
+    .\repak\repak.exe unpack "%OBRE_PAK%" -o "%TMP_DIR%\pak"
 
     if not exist "%TMP_DIR%\pak" (
         echo ERROR: Could not find extracted .pak file data of Oblivion Remastered
@@ -200,7 +192,7 @@ if exist "%~dp0german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\Con
 
 if !AMOUNT_BNK_BEFORE! lss 133000 (
 :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
-    .\busybox\busybox.exe bash scripts\patch-bnks-copy-out.sh
+    cmd /c .\voxmeld\voxmeld.exe
 
     set AMOUNT_BNK_AFTER=0
     if exist "%~dp0german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\Content\WwiseAudio\Event\English(US)" (
@@ -218,9 +210,9 @@ if !AMOUNT_BNK_BEFORE! lss 133000 (
 if %EXECUTE_MP3_DIFF_SCRIPT% == "true" (
     .\busybox\busybox.exe bash scripts\check-missing-wems.sh
 )
-
+echo Building the Mod PAK file...
 :: Final step. Build the mod PAK file
-cmd /c .\voxmeld\create-pak.exe .\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\
+cmd /c .\repak\repak.exe pack --prefix "OblivionRemastered" --version V11 .\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\ "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak"
 
 set size=0
 if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak" (
