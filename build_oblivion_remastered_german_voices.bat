@@ -212,7 +212,7 @@ if %EXECUTE_MP3_DIFF_SCRIPT% == "true" (
 )
 echo Building the Mod PAK file...
 :: Final step. Build the mod PAK file
-cmd /c .\repak\repak.exe pack --prefix "OblivionRemastered" --version V11 .\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\ "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak"
+cmd /c .\repak\repak.exe pack -m "../../../OblivionRemastered" --version V11 .\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P\ "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak"
 
 set size=0
 if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak" (
