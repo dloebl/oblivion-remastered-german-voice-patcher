@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"log"
+	"time"
 )
 
 // Neuer Logger
@@ -101,25 +102,36 @@ var raceAlternatives = map[string][]string{
 // Füge einen Mutex für Dateioperationen hinzu
 var fileMutex sync.Mutex
 
+// Globale Variablen für Fortschrittsanzeige
+var animationsStopp chan struct{}
+var animationsZähler int
+var fortschrittsMutex sync.Mutex
+
 func main() {
 	setupLogging()
 	defer logFile.Close()
 
-	logAndPrint("Starte Verarbeitung der Audiodateien...")
-	
+	// Startzeit erfassen
+	startZeit := time.Now()
+
+	// Zeige Header an
+	fmt.Printf("\n====================== AUDIO DATEI VERARBEITUNG ======================\n")
+	fmt.Printf("Status:      Starte Verarbeitung der Audiodateien\n")
+	fmt.Printf("-------------------------------------------------------------------\n")
+
 	// Führe Prefix-Änderungen durch
-	logAndPrint("Führe Prefix-Änderungen durch...")
+	fmt.Println("Führe Prefix-Änderungen durch...")
 	performPrefixChanges()
 
 	// Erstelle MP3s Verzeichnis
-	logAndPrint("Erstelle MP3s Verzeichnis...")
+	fmt.Println("Erstelle MP3s Verzeichnis...")
 	os.MkdirAll("tmp/MP3s", 0755)
 
 	// Verarbeite Dateien
-	logAndPrint("Starte Dateiverarbeitung...")
-	processFiles()
+	fmt.Println("Starte Dateiverarbeitung...")
+	processFiles(startZeit)
 
-	logAndPrint("\nVerarbeitung abgeschlossen!")
+	fmt.Println("\nVerarbeitung abgeschlossen!")
 }
 
 // Funktion zum Einrichten des Loggings
@@ -140,14 +152,17 @@ func setupLogging() {
 
 	// Initialisiere den Logger
 	logger = log.New(logFile, "", log.LstdFlags)
-	logAndPrint("Logging initialisiert")
+	fmt.Println("Logging initialisiert")
 }
 
 // Funktion zum Loggen und gleichzeitigen Ausgeben einer Nachricht
 func logAndPrint(message string) {
-	fmt.Println(message)
-	if logger != nil {
-		logger.Println(message)
+	// Temporär deaktiviert: Keine Ausgabe für "Copy variant:"
+	if !strings.Contains(message, "Copy variant:") {
+		fmt.Println(message)
+		if logger != nil {
+			logger.Println(message)
+		}
 	}
 }
 
@@ -173,7 +188,7 @@ func checkAndCopyRemaster(dlc, race, variant, file string, wg *sync.WaitGroup) {
 			"ModFiles/Content/Dev/ObvData/Data/sound/voice",
 			dlc, race, variant+prefix, filepath.Base(file),
 		)
-		
+
 		// Prüfe ob Zieldatei existiert
 		if _, err := os.Stat(targetPath); err == nil {
 			message := fmt.Sprintf("Copy variant: %s/%s/%s%s/%s...", dlc, race, variant, prefix, filepath.Base(file))
@@ -189,11 +204,45 @@ func checkAndCopyRemaster(dlc, race, variant, file string, wg *sync.WaitGroup) {
 	}
 }
 
-func processFiles() {
+// zeichneAnimiertenFortschrittsbalken stellt einen animierten Fortschrittsbalken in der Konsole dar
+func zeichneAnimiertenFortschrittsbalken(aktuellerFortschritt, gesamtAnzahl int, startZeit time.Time, animationsZähler int, aktuelleAktion string) {
+	breite := 40 // Breite des Balkens in Zeichen
+
+	// Berechne Prozentsatz
+	prozent := float64(aktuellerFortschritt) / float64(gesamtAnzahl)
+
+	// Berechne Anzahl der gefüllten Zeichen
+	gefüllt := int(prozent * float64(breite))
+
+	// Animations-Zeichen
+	animationsSymbole := []string{"|", "/", "-", "\\"}
+	animationSymbol := animationsSymbole[animationsZähler%len(animationsSymbole)]
+
+	// ASCII-Ladebalken Zeichen
+	gefülltZeichen := "#"
+	leerZeichen := "-"
+
+	// Erstelle den Ladebalken
+	balken := strings.Repeat(gefülltZeichen, gefüllt) + strings.Repeat(leerZeichen, breite-gefüllt)
+
+	// Erstelle einen eingebetteten Animations-Cursor im Ladebalken
+	if gefüllt < breite {
+		position := gefüllt
+		balkenRunes := []rune(balken)
+		balkenRunes[position] = []rune(animationSymbol)[0]
+		balken = string(balkenRunes)
+	}
+
+	// Lösche die aktuelle Zeile und zeige nur den Balken ohne verstrichene Zeit an
+	fmt.Printf("\r[%s] %3.0f%% %d/%d Dateien verarbeitet",
+		balken, prozent*100, aktuellerFortschritt, gesamtAnzahl)
+}
+
+func processFiles(startZeit time.Time) {
 	var wg sync.WaitGroup
 	var totalFiles int
 	var processedFiles int32
-	var mu sync.Mutex
+	var aktuelleAktion string = "Zähle Dateien"
 
 	// Zähle zuerst alle Dateien
 	dlcs, _ := filepath.Glob("tmp/sound/voice/*")
@@ -208,27 +257,56 @@ func processFiles() {
 		}
 	}
 
-	// Funktion zum Aktualisieren des Fortschritts
-	updateProgress := func() {
-		mu.Lock()
-		current := atomic.AddInt32(&processedFiles, 1)
-		percentage := float64(current) / float64(totalFiles) * 100
-		fmt.Printf("\rFortschritt: %.2f%% (%d/%d Dateien)", percentage, current, totalFiles)
-		mu.Unlock()
-	}
+	// Aktualisiere Aktion nach dem Zählen
+	aktuelleAktion = "Kopiere MP3-Dateien"
+
+	// Zeige Informationen
+	fmt.Printf("\n-------------------------------------------------------------------\n")
+	fmt.Printf("Dateien:     %d Audio-Dateien gefunden\n", totalFiles)
+	fmt.Printf("Status:      Starte Kopieren und Umbenennen der Dateien\n")
+	fmt.Printf("-------------------------------------------------------------------\n")
+
+	// Starte Animation im Hintergrund
+	animationsStopp = make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				fortschrittsMutex.Lock()
+				animationsZähler++
+				zeichneAnimiertenFortschrittsbalken(
+					int(atomic.LoadInt32(&processedFiles)),
+					totalFiles,
+					startZeit,
+					animationsZähler,
+					aktuelleAktion)
+				fortschrittsMutex.Unlock()
+			case <-animationsStopp:
+				return
+			}
+		}
+	}()
 
 	// Verarbeite die Dateien
 	for _, dlc := range dlcs {
+		dlcName := filepath.Base(dlc)
+		aktuelleAktion = fmt.Sprintf("Kopiere Dateien aus: %s", dlcName)
+
 		races, _ := filepath.Glob(filepath.Join(dlc, "*"))
 		for _, race := range races {
+			raceName := filepath.Base(race)
+			aktuelleAktion = fmt.Sprintf("Kopiere Dateien: %s/%s", dlcName, raceName)
+
 			variants, _ := filepath.Glob(filepath.Join(race, "*"))
 			for _, variant := range variants {
+				variantName := filepath.Base(variant)
+				aktuelleAktion = fmt.Sprintf("Kopiere: %s/%s/%s", dlcName, raceName, variantName)
+
 				files, _ := filepath.Glob(filepath.Join(variant, "*.mp3"))
 				for _, file := range files {
-					raceName := filepath.Base(race)
-					variantName := filepath.Base(variant)
-					dlcName := filepath.Base(dlc)
-
 					// Kopiere Datei in den MP3s-Ordner
 					mp3Target := filepath.Join("tmp/MP3s", fmt.Sprintf("%s_%s_%s", raceName, variantName, filepath.Base(file)))
 					wg.Add(1)
@@ -237,7 +315,7 @@ func processFiles() {
 						if err := copyFile(src, dst); err != nil {
 							logAndPrint(fmt.Sprintf("Fehler beim Kopieren von %s nach %s: %v", src, dst, err))
 						}
-						updateProgress()
+						atomic.AddInt32(&processedFiles, 1)
 					}(file, mp3Target)
 
 					// Prüfe Varianten und kopiere in BSA-Extraktordner
@@ -255,7 +333,23 @@ func processFiles() {
 	}
 
 	wg.Wait()
-	logAndPrint("\nVerarbeitung abgeschlossen!")
+
+	// Aktualisiere Aktion nach der Verarbeitung
+	aktuelleAktion = "Dateien erfolgreich kopiert"
+
+	// Animationsschleife stoppen
+	close(animationsStopp)
+	time.Sleep(200 * time.Millisecond) // Kurz warten, damit die Animation sauber beendet wird
+
+	// Zeige finalen Fortschrittsbalken
+	fortschrittsMutex.Lock()
+	zeichneAnimiertenFortschrittsbalken(
+		int(atomic.LoadInt32(&processedFiles)),
+		totalFiles,
+		startZeit,
+		animationsZähler,
+		aktuelleAktion)
+	fortschrittsMutex.Unlock()
 }
 
 func copyFile(src, dst string) error {
@@ -279,4 +373,4 @@ func copyFile(src, dst string) error {
 
 	_, err = io.Copy(destination, source)
 	return err
-} 
+}
