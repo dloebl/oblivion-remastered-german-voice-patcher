@@ -208,7 +208,8 @@ if !AMOUNT_BNK_BEFORE! lss 133000 (
 )
 
 if %EXECUTE_MP3_DIFF_SCRIPT% == "true" (
-    .\busybox\busybox.exe bash scripts\check-missing-wems.sh
+    :: TODO: Switch away from busybox to a native solution
+    ::.\busybox\busybox.exe bash scripts\check-missing-wems.sh
 )
 echo Building the Mod PAK file...
 :: Final step. Build the mod PAK file
