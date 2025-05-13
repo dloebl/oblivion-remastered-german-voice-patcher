@@ -2,9 +2,11 @@
 ::remasterName = originalName
 ::remasterName: Name of race folder in Oblivion Remastered .bsa extract folder
 ::originalName: Name of race folder in original Oblivion .bsa extract folder
-khajiit     =   argonian
-dark elf    =   high_elf
-wood elf    =   high_elf
-high elf    =   high_elf
-breton      =   imperial
-orc         =   nord
+khajiit         =   argonian
+dark elf        =   high_elf
+wood elf        =   high_elf
+high elf        =   high_elf
+dark seducer    =   dark_seducer
+golden saint    =   golden_saint
+breton          =   imperial
+orc             =   nord
