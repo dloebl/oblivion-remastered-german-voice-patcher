@@ -1,0 +1,4 @@
+::Structure:
+::remasterName = originalName
+::remasterName: Name of race folder in Oblivion Remastered .bsa extract folder
+::originalName: Name of race folder in original Oblivion .bsa extract folder
