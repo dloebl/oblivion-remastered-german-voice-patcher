@@ -56,3 +56,4 @@ sound/voice/oblivion.esm/argonian/f/damephala_damephalaspeech_000579d9_1.mp3    
 sound/voice/oblivion.esm/argonian/f/damephala_damephalaspeech_000579da_1.mp3                        =   sound/voice/oblivion.esm/high_elf/f/damephala_damephalaspeech_000579da_1.mp3
 sound/voice/oblivion.esm/argonian/f/damephala_damephalaspeech_000579db_1.mp3                        =   sound/voice/oblivion.esm/high_elf/f/damephala_damephalaspeech_000579db_1.mp3
 sound/voice/oblivion.esm/argonian/f/damephala_damephalaspeech_000579dc_1.mp3                        =   sound/voice/oblivion.esm/high_elf/f/damephala_damephalaspeech_000579dc_1.mp3
+sound/voice/oblivion.esm/high_elf/m/tginfo_greeting_0003cd0f_1_alt.mp3                              =   sound/voice/oblivion.esm/high_elf/m/tginfo_greeting_0003cd0f_1.mp3

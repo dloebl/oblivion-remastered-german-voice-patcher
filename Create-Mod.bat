@@ -1,5 +1,5 @@
 @echo off
-chcp 1252
+chcp 65001
 setlocal enabledelayedexpansion
 
 :: Check for update of patcher
@@ -219,16 +219,24 @@ if !SUCCESSFUL_STEP! == 0 (
     for /r "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\voice\oblivion.esm" %%A in (*.mp3) do set /a AMOUNT_FILES_OBLIVION_ESM+=1
 
     if !AMOUNT_FILES_OBLIVION_ESM! NEQ !EXPECTED_AMOUNT_OBLIVION_ESM! (
-        echo ERROR: Incorrect amount of audio files found.
-        call :throw_error "This usually means that your original Oblivion does not have the correct language installed"
+        if "!IGNORE_MISMATCH!" == "true" (
+            echo INFO: Incorrect amount of audio files found.
+        ) else (
+            echo ERROR: Incorrect amount of audio files found.
+            call :throw_error "This usually means that your original Oblivion does not have the correct language installed"
+        )
     )
  
     set AMOUNT_FILES_KNIGHTS_ESP=0
     for /r "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\voice\knights.esp" %%A in (*.mp3) do set /a AMOUNT_FILES_KNIGHTS_ESP+=1
 
     if !EXPECTED_AMOUNT_KNIGHTS_ESP! NEQ !AMOUNT_FILES_KNIGHTS_ESP! (
-        echo ERROR: Incorrect amount of audio files found.
-        call :throw_error "This usually means that your original Oblivion does not have the correct language installed"
+        if "!IGNORE_MISMATCH!" == "true" (
+            echo INFO: Incorrect amount of audio files found.
+        ) else (
+            echo ERROR: Incorrect amount of audio files found.
+            call :throw_error "This usually means that your original Oblivion does not have the correct language installed"
+        )
     )
 
     call :update_last_step 1
@@ -326,7 +334,11 @@ if !SUCCESSFUL_STEP! == 6 (
         for /f %%A in ('dir /a-d /b "%CONVERT_FOLDER_TO_CONVERT%" 2^>nul ^| find /v /c ""') do set AMOUNT_TO_CONVERT_AFTER=%%A
 
         if !AMOUNT_TO_CONVERT_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
-            call :throw_error "ERROR: Amount of files to convert does not match the expected amount. Expected: !EXPECTED_AMOUNT_AUDIOS!, Got: !AMOUNT_TO_CONVERT_AFTER!"
+            if "!IGNORE_MISMATCH!" == "true" (
+                echo INFO: Incorrect amount of files to convert found.
+            ) else (
+                call :throw_error "ERROR: Amount of files to convert does not match the expected amount. Expected: !EXPECTED_AMOUNT_AUDIOS!, Got: !AMOUNT_TO_CONVERT_AFTER!"
+            )
         )
 
         call :update_last_step 7
@@ -399,8 +411,12 @@ if !SUCCESSFUL_STEP! == 8 (
 				)
 
 				if !AMOUNT_WAV_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
-					echo ERROR: !AMOUNT_WAV_AFTER! .wav files does not match the expected amount
-					call :throw_error "This probably means that there was an error while converting a file"
+                    if "!IGNORE_MISMATCH!" == "true" (
+                        echo INFO: Incorrect amount of .wav files found.
+                    ) else (
+                        echo ERROR: !AMOUNT_WAV_AFTER! .wav files does not match the expected amount
+					    call :throw_error "This probably means that there was an error while converting a file"
+                    )
 				)
 
 				call :throw_error "ERROR: An unknown error occured while converting .wav files"
@@ -410,8 +426,12 @@ if !SUCCESSFUL_STEP! == 8 (
         )
 
         if !AMOUNT_WEM_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
-            echo ERROR: !AMOUNT_WEM_AFTER! .wem files does not match the expected amount
-            call :throw_error "This probably means that there was an error while converting a file"
+            if "!IGNORE_MISMATCH!" == "true" (
+                echo INFO: Incorrect amount of .wav files found.
+            ) else (
+                echo ERROR: !AMOUNT_WEM_AFTER! .wem files does not match the expected amount
+                call :throw_error "This probably means that there was an error while converting a file"
+            )
         )
 
         echo INFO: Successfully created !AMOUNT_WEM_AFTER! .wem files.
@@ -451,7 +471,11 @@ if !SUCCESSFUL_STEP! == 9 (
 		set /a AMOUNT_BNK_AFTER=!AMOUNT_BNK_AFTER! + 2
 
 		if !AMOUNT_BNK_AFTER! NEQ !EXPECTED_AMOUNT_BNKS! (
-			call :throw_error "ERROR: !AMOUNT_BNK_AFTER! .bnk files does not match the expected amount"
+            if "!IGNORE_MISMATCH!" == "true" (
+                echo INFO: Incorrect amount of .bnk files found.
+            ) else (
+                call :throw_error "ERROR: !AMOUNT_BNK_AFTER! .bnk files does not match the expected amount"
+            )
 		)
 
 		echo INFO: Successfully created !AMOUNT_BNK_AFTER! .bnk files.
