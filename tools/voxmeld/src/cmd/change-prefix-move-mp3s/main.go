@@ -137,7 +137,7 @@ func processFiles(convertFolder string, extractFolderBsa string, timeStart time.
 				var files []string
 				for _, f := range unfilteredFiles {
 					if strings.EqualFold(filepath.Ext(f), ".mp3") {
-						files = append(unfilteredFiles, f)
+						files = append(files, f)
 					}
 				}
 

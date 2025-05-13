@@ -142,6 +142,8 @@ if not exist "%VOICES_1_BSA_OBRE%" (
     ) else (
         call :throw_error "ERROR: Could not find .bsa files for Oblivion Remastered"
     )
+) else (
+    echo INFO: Found backup files!
 )
 
 if exist "!DIRECTORY_OBRE!\Paks\OblivionRemastered-Windows.pak" (
