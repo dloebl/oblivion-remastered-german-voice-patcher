@@ -38,7 +38,7 @@ func main() {
 	execDir = filepath.Dir(execDir)
 
 	// Show header
-	fmt.Printf("\n====================== Apply repalce fix ======================\n")
+	fmt.Printf("\n====================== Apply replace fix ======================\n")
 	fmt.Printf("Status:      			Preparing files\n")
 	fmt.Printf("-------------------------------------------------------------------\n")
 
