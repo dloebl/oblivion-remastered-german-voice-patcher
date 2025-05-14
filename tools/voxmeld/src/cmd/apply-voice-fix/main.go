@@ -40,7 +40,7 @@ func main() {
 	
 	// Show header
 	fmt.Printf("\n====================== Apply voice fix ======================\n")
-	fmt.Printf("Status:      Start processing files\n")
+	fmt.Printf("Status:      		Start processing files\n")
 	fmt.Printf("-------------------------------------------------------------------\n")
 
 	// Get current time

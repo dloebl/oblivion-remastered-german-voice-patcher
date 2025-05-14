@@ -131,6 +131,42 @@ func processFiles(extractFolder, customFolder string, timeStart time.Time) {
 		return
 	}
 
+	// Check for optional dlc
+	if _, err := os.Stat(filepath.Join(extractFolder, "sound/voice/dlchorsearmor.esp/")); err == nil {
+		fileOptional, err := os.Open(filepath.Join("custom", language, "replacements-optional.txt"))
+		if err != nil {
+			fmt.Println("ERROR: Could not open file:", err)
+			return
+		}
+		defer fileOptional.Close()
+
+		scanner = bufio.NewScanner(fileOptional)
+		for scanner.Scan() {
+			row := scanner.Text()
+
+			if strings.HasPrefix(row, "::") {
+				// Row is comment
+				continue
+			}
+
+			rowParts := strings.SplitN(row, "=", 2)
+			if len(rowParts) != 2 {
+				fmt.Println("Invalid row (no '=' character found):", row)
+				continue
+			}
+
+			fileToReplace := strings.TrimSpace(rowParts[0])
+			fileToReplaceWith := strings.TrimSpace(rowParts[1])
+
+			fileReplaceMappings[fileToReplace] = fileToReplaceWith
+		}
+
+		if err := scanner.Err(); err != nil {
+			fmt.Println("ERROR: Could not read file:", err)
+			return
+		}
+	}
+
 	totalFiles = len(fileReplaceMappings)
 
 	// Show information

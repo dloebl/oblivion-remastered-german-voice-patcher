@@ -14,11 +14,11 @@ https://discord.gg/TVfn6xkBhB
 2. Start the "Wwise Launcher", login and install the latest version of Wwise. You can unselect all optional features - we just need Wwise
 
 # Build steps and installation steps
-1. Open "paths.bat" with a text editor and update the two paths at the beginning of the file with the updated ones from the requirements that you just installed
-2. Run the "build_oblivion_remastered_german_voices.bat" script
+1. Run the "Create-Mod.bat" script
+2. Enter the paths the terminal asks you for and confirm them with 'Enter'
 3. Be patient. It takes about 60 minutes to build this mod.
-4. Some errors like "panic: open [..]/Event/English(US)/Play_*.bnk are expected and just mean that a German voice file couldn't be mapped to a BNK
-5. Copy the the files from the built "ModFiles\" folder to your installation of Oblivion Remastered
+4. Some errors like "panic: open [..]/Event/English(US)/Play_*.bnk are expected. As long as the patcher doesn't get stuck for multiple minutes without anything changing you don't ahve to worry.
+5. Install the mod by confirming the prompt at the end or copy the the files from the built "Mod\" folder to your installation of Oblivion Remastered
 6. Enjoy Oblivion Remastered with German voices!
 
 # Open Source credits

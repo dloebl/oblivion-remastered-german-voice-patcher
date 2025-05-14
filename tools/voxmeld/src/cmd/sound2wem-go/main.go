@@ -162,8 +162,8 @@ func main() {
 
 	// Zeige Step an.
 	fmt.Printf("\n====================== SOUND2WEM ======================\n")
-	fmt.Printf("Source:     %s\n", strings.Join(os.Args[1:], ", "))
 	fmt.Printf("Files:     	%d files found\n", totalFiles)
+	fmt.Printf("Source:     %s\n", strings.Join(os.Args[1:], ", "))
 	fmt.Printf("Status:     Starting to convert files to .wav and .wem format\n")
 	fmt.Printf("-------------------------------------------------------\n")
 
