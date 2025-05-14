@@ -2,6 +2,7 @@
 chcp 65001
 setlocal enabledelayedexpansion
 
+
 :: Check for update of patcher
 ::call "%~dp0tools\scripts\batch\check-update.bat"
 
@@ -28,6 +29,7 @@ echo ===========================================================================
 
 timeout /t 2 >nul
 echo STEP: Initialising patcher...
+
 
 :: =================================================================
 :: Check required files
@@ -73,15 +75,6 @@ if exist "%AMOUNTS_FILE%" (
     call :throw_error "ERROR: No amounts file found"
 )
 
-:: Load lastStep file
-set SUCCESSFUL_STEP=0
-if exist "%LAST_SUCCESSFUL_STEP_FILE%" (
-    for /f "usebackq tokens=1,* delims==" %%A in ("%LAST_SUCCESSFUL_STEP_FILE%") do (
-        set SUCCESSFUL_STEP=%%A
-    )
-) else (
-    echo 0>"%LAST_SUCCESSFUL_STEP_FILE%"
-)
 
 :: =================================================================
 :: Set Paths
@@ -202,6 +195,16 @@ set "CONVERT_FOLDER_WEM=%TMP_DIR%\wem"
 set "CONVERT_FOLDER_BNK=%TMP_DIR%\bnk"
 set "CONVERT_FOLDER_BNK_EVENT=%CONVERT_FOLDER_BNK%\Content\WwiseAudio\Event"
 set "CONVERT_FOLDER_BNK_MEDIA=%CONVERT_FOLDER_BNK%\Content\WwiseAudio\Media"
+
+:: Check for last step file
+set SUCCESSFUL_STEP=0
+if exist "%LAST_SUCCESSFUL_STEP_FILE%" (
+    for /f "usebackq tokens=1,* delims==" %%A in ("%LAST_SUCCESSFUL_STEP_FILE%") do (
+        set SUCCESSFUL_STEP=%%A
+    )
+) else (
+    echo 0>"%LAST_SUCCESSFUL_STEP_FILE%"
+)
 
 
 :: =================================================================
