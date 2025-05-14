@@ -101,16 +101,39 @@ set "VOICES_1_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%VOICES_1%.bsa"
 set "VOICES_2_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%VOICES_2%.bsa"
 set "SHIVERING_ISLES_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%SHIVERING_ISLES%.bsa"
 set "KNIGHTS_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%KNIGHTS%.bsa"
+
+for %%A in ("%VOICES_1_BSA_ORIGINAL%") do set "size_base=%%~zA"
+if !size_base! NEQ !EXPECTED_SIZE_BASE! (
+    if "!IGNORE_MISMATCH!" == "true" (
+        echo INFO: Original Oblivion has incorrect size. Amount: !size_base! bytes
+        echo INFO: Will continue since 'ignore mismatch' setting is enabled
+    ) else (
+        echo ERROR: Original Oblivion has incorrect size. Amount: !size_base! bytes
+        call :throw_error "This probably means that your original oblivion files are in english"
+    )
+)
+
+echo INFO: Checking for optional DLC
 :: Optional DLC
 if exist "!DIRECTORY_ORIGINAL!\%DLC_1%.bsa" (
-    set "DLC_1_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_1%.bsa"
-    set "DLC_2_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_2%.bsa"
-    set "DLC_3_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_3%.bsa"
-    set "DLC_4_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_4%.bsa"
+    for %%A in ("!DIRECTORY_ORIGINAL!\%DLC_1%.bsa") do set "size_dlc=%%~zA"
+    if !size_dlc! EQU !EXPECTED_SIZE_DLC! (
+        echo INFO: DLC for original Oblivion were found!
 
-    :: Change amounts to use for later checks to DLC count
-    set EXPECTED_AMOUNT_AUDIOS=!EXPECTED_AMOUNT_AUDIOS_WITH_DLC!
-    set EXPECTED_AMOUNT_BNKS=!EXPECTED_AMOUNT_BNKS_WITH_DLC!
+        set "DLC_1_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_1%.bsa"
+        set "DLC_2_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_2%.bsa"
+        set "DLC_3_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_3%.bsa"
+        set "DLC_4_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_4%.bsa"
+
+        :: Change amounts to use for later checks to DLC count
+        set EXPECTED_AMOUNT_AUDIOS=!EXPECTED_AMOUNT_AUDIOS_WITH_DLC!
+        set EXPECTED_AMOUNT_BNKS=!EXPECTED_AMOUNT_BNKS_WITH_DLC!
+    ) else (
+        echo INFO: Optional DLC has incorrect size. Amount: !size_dlc! bytes
+        echo INFO: This probably meeans that your DLCs are in english. Ignoring optional DLC
+    )
+) else (
+    echo INFO: DLC for original Oblivion could not be found!
 )
 
 if not exist "%VOICES_1_BSA_ORIGINAL%" (
@@ -189,10 +212,8 @@ if !SUCCESSFUL_STEP! == 0 (
     echo STEP: Extracting .bsa files from original Oblivion...
     
     if exist "!DIRECTORY_ORIGINAL!\%DLC_1%.bsa" (
-        echo INFO: DLC for original Oblivion were found!
         cmd /c .\tools\BSArch\bsa-multi.exe -o "%EXTRACT_FOLDER_BSA_ORIGINAL%" "%VOICES_1_BSA_ORIGINAL%" "%VOICES_2_BSA_ORIGINAL%" "%SHIVERING_ISLES_BSA_ORIGINAL%" "%KNIGHTS_BSA_ORIGINAL%" "%DLC_1_BSA_ORIGINAL%" "%DLC_2_BSA_ORIGINAL%" "%DLC_3_BSA_ORIGINAL%" "%DLC_4_BSA_ORIGINAL%"
     ) else (
-        echo INFO: DLC for original Oblivion could not be found!
         cmd /c .\tools\BSArch\bsa-multi.exe -o "%EXTRACT_FOLDER_BSA_ORIGINAL%" "%VOICES_1_BSA_ORIGINAL%" "%VOICES_2_BSA_ORIGINAL%" "%SHIVERING_ISLES_BSA_ORIGINAL%" "%KNIGHTS_BSA_ORIGINAL%"
     )
 
@@ -206,39 +227,6 @@ if !SUCCESSFUL_STEP! == 0 (
 
     if not exist "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound" (
         call :throw_error "ERROR: Could not extract .bsa files of original Oblivion"
-    )
-
-    if not exist "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\voice\oblivion.esm" (
-        call :throw_error "ERROR: Could not find extracted .bsa files of original Oblivion (oblivion.esm)"
-    )
-    
-    if not exist "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\voice\knights.esp" (
-        call :throw_error "ERROR: Could not find extracted .bsa files of original Oblivion (knights.esp)"
-    )
-
-    :: Check if mp3s extracted from base game and knights dlc have the expected amount of files
-    set AMOUNT_FILES_OBLIVION_ESM=0
-    for /r "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\voice\oblivion.esm" %%A in (*.mp3) do set /a AMOUNT_FILES_OBLIVION_ESM+=1
-
-    if !AMOUNT_FILES_OBLIVION_ESM! NEQ !EXPECTED_AMOUNT_OBLIVION_ESM! (
-        if "!IGNORE_MISMATCH!" == "true" (
-            echo INFO: Incorrect amount of audio files found.
-        ) else (
-            echo ERROR: Incorrect amount of audio files found.
-            call :throw_error "This usually means that your original Oblivion does not have the correct language installed"
-        )
-    )
- 
-    set AMOUNT_FILES_KNIGHTS_ESP=0
-    for /r "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\voice\knights.esp" %%A in (*.mp3) do set /a AMOUNT_FILES_KNIGHTS_ESP+=1
-
-    if !EXPECTED_AMOUNT_KNIGHTS_ESP! NEQ !AMOUNT_FILES_KNIGHTS_ESP! (
-        if "!IGNORE_MISMATCH!" == "true" (
-            echo INFO: Incorrect amount of audio files found.
-        ) else (
-            echo ERROR: Incorrect amount of audio files found.
-            call :throw_error "This usually means that your original Oblivion does not have the correct language installed"
-        )
     )
 
     call :update_last_step 1
@@ -331,13 +319,14 @@ if !SUCCESSFUL_STEP! == 6 (
 
     cmd /c .\tools\voxmeld\change-prefix-move-mp3s.exe
 
-    set AMOUNT_TO_CONVERT_AFTER=0
     if exist "%CONVERT_FOLDER_TO_CONVERT%" (
+        set AMOUNT_TO_CONVERT_AFTER=0
         for /f %%A in ('dir /a-d /b "%CONVERT_FOLDER_TO_CONVERT%" 2^>nul ^| find /v /c ""') do set AMOUNT_TO_CONVERT_AFTER=%%A
 
         if !AMOUNT_TO_CONVERT_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
             if "!IGNORE_MISMATCH!" == "true" (
                 echo INFO: Incorrect amount of files to convert found.
+                echo INFO: Will continue since 'ignore mismatch' setting is enabled
             ) else (
                 call :throw_error "ERROR: Amount of files to convert does not match the expected amount. Expected: !EXPECTED_AMOUNT_AUDIOS!, Got: !AMOUNT_TO_CONVERT_AFTER!"
             )
@@ -419,6 +408,7 @@ if !SUCCESSFUL_STEP! == 8 (
 				if !AMOUNT_WAV_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
                     if "!IGNORE_MISMATCH!" == "true" (
                         echo INFO: Incorrect amount of .wav files found.
+                        echo INFO: Will continue since 'ignore mismatch' setting is enabled
                     ) else (
                         echo ERROR: !AMOUNT_WAV_AFTER! .wav files does not match the expected amount
 					    call :throw_error "This probably means that there was an error while converting a file"
@@ -434,6 +424,7 @@ if !SUCCESSFUL_STEP! == 8 (
         if !AMOUNT_WEM_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
             if "!IGNORE_MISMATCH!" == "true" (
                 echo INFO: Incorrect amount of .wav files found.
+                echo INFO: Will continue since 'ignore mismatch' setting is enabled
             ) else (
                 echo ERROR: !AMOUNT_WEM_AFTER! .wem files does not match the expected amount
                 call :throw_error "This probably means that there was an error while converting a file"
@@ -481,6 +472,7 @@ if !SUCCESSFUL_STEP! == 9 (
 		if !AMOUNT_BNK_AFTER! NEQ !EXPECTED_AMOUNT_BNKS! (
             if "!IGNORE_MISMATCH!" == "true" (
                 echo INFO: Incorrect amount of .bnk files found.
+                echo INFO: Will continue since 'ignore mismatch' setting is enabled
             ) else (
                 call :throw_error "ERROR: !AMOUNT_BNK_AFTER! .bnk files does not match the expected amount"
             )
