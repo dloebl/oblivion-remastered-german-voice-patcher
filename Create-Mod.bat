@@ -344,6 +344,8 @@ if !SUCCESSFUL_STEP! == 6 (
         )
 
         call :update_last_step 7
+    ) else (
+        call :throw_error "ERROR: Could not find folder with files to convert"
     )
 )
 
@@ -380,6 +382,8 @@ if !SUCCESSFUL_STEP! == 7 (
         )
 
         call :update_last_step 8
+    ) else (
+        call :throw_error "ERROR: Could not find folder with final .bsa files"
     )
 )
 
@@ -447,6 +451,8 @@ if !SUCCESSFUL_STEP! == 8 (
         )
 
         call :update_last_step 9
+    ) else (
+        call :throw_error "ERROR: Could not find folder with .wem files"
     )
 )
 
@@ -483,7 +489,9 @@ if !SUCCESSFUL_STEP! == 9 (
 		echo INFO: Successfully created !AMOUNT_BNK_AFTER! .bnk files.
 
 		call :update_last_step 10
-	)
+	) else (
+        call :throw_error "ERROR: Could not find folder with .bnk files"
+    )
 )
 
 
