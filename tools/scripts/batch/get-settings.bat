@@ -38,6 +38,10 @@ if exist "%CONFIG_FILE%" (
     if not defined REMOVE_TEMP_FILES (
         call :prompt_flag "Remove temporary files after successfully creating the mod" "REMOVE_TEMP_FILES"
     )
+
+    if not defined IGNORE_MISMATCH (
+        echo IGNORE_MISMATCH=false>> "%CONFIG_FILE%"
+    )
 ) else (
     goto eingabe_obre
 )
