@@ -106,7 +106,7 @@ if !size_base! NEQ !EXPECTED_SIZE_BASE! (
     )
 )
 
-echo INFO: Checking for optional DLC
+echo INFO: Checking for optional DLC in original Oblivion
 :: Optional DLC
 if exist "!DIRECTORY_ORIGINAL!\%DLC_1%.bsa" (
     for %%A in ("!DIRECTORY_ORIGINAL!\%DLC_1%.bsa") do set "size_dlc=%%~zA"
@@ -122,8 +122,14 @@ if exist "!DIRECTORY_ORIGINAL!\%DLC_1%.bsa" (
         set EXPECTED_AMOUNT_AUDIOS=!EXPECTED_AMOUNT_AUDIOS_WITH_DLC!
         set EXPECTED_AMOUNT_BNKS=!EXPECTED_AMOUNT_BNKS_WITH_DLC!
     ) else (
-        echo INFO: Optional DLC has incorrect size. Amount: !size_dlc! bytes
-        echo INFO: This probably meeans that your DLCs are in english. Ignoring optional DLC
+
+        if !size_dlc! EQU 4018605 (
+            echo INFO: Optional DLC were found but are in english
+            echo INFO: This usually means that both the GOTY and GOTY Deluxe editions are installed at the same time.
+            echo INFO: This is no problem, optional DLC will be ignored and patcher will proceed.
+        ) else (
+            echo INFO: Optional DLC has incorrect size. Amount: !size_dlc! bytes. Will be handled as missing optional DLC.
+        )
     )
 ) else (
     echo INFO: DLC for original Oblivion could not be found!
@@ -214,7 +220,7 @@ if exist "%LAST_SUCCESSFUL_STEP_FILE%" (
 if !SUCCESSFUL_STEP! == 0 (
     echo STEP: Extracting .bsa files from original Oblivion...
     
-    if exist "!DIRECTORY_ORIGINAL!\%DLC_1%.bsa" (
+    if defined DLC_1_BSA_ORIGINAL (
         cmd /c .\tools\BSArch\bsa-multi.exe -o "%EXTRACT_FOLDER_BSA_ORIGINAL%" "%VOICES_1_BSA_ORIGINAL%" "%VOICES_2_BSA_ORIGINAL%" "%SHIVERING_ISLES_BSA_ORIGINAL%" "%KNIGHTS_BSA_ORIGINAL%" "%DLC_1_BSA_ORIGINAL%" "%DLC_2_BSA_ORIGINAL%" "%DLC_3_BSA_ORIGINAL%" "%DLC_4_BSA_ORIGINAL%"
     ) else (
         cmd /c .\tools\BSArch\bsa-multi.exe -o "%EXTRACT_FOLDER_BSA_ORIGINAL%" "%VOICES_1_BSA_ORIGINAL%" "%VOICES_2_BSA_ORIGINAL%" "%SHIVERING_ISLES_BSA_ORIGINAL%" "%KNIGHTS_BSA_ORIGINAL%"
