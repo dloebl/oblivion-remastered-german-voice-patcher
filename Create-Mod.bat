@@ -4,8 +4,6 @@ setlocal enabledelayedexpansion
 
 cd /d "%~dp0"
 
-echo Execution directory: "%~dp0"
-
 :: Check for update of patcher
 ::call "%~dp0tools\scripts\batch\check-update.bat"
 
@@ -31,6 +29,8 @@ echo === Discord:   https://discord.gg/CTsmFfj5                                 
 echo =======================================================================================
 
 timeout /t 2 >nul
+
+echo Execution directory: "%~dp0"
 echo STEP: Initialising patcher...
 
 
