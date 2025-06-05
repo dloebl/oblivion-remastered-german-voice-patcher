@@ -2,6 +2,7 @@
 chcp 65001
 setlocal enabledelayedexpansion
 
+cd /d "%~dp0"
 
 :: Check for update of patcher
 ::call "%~dp0tools\scripts\batch\check-update.bat"

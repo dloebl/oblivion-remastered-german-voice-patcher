@@ -6,3 +6,14 @@ sound/voice/dlcthievesden.esp/high_elf/m/generic_barter_000088a2_1.mp3          
 sound/voice/dlcthievesden.esp/high_elf/m/generic_barter_0003e452_1.mp3                              =   sound/voice/oblivion.esm/high_elf/m/generic_barter_0003e452_1.mp3
 sound/voice/dlcthievesden.esp/redguard/m/generic_barter_0003d078_1.mp3                              =   sound/voice/oblivion.esm/redguard/m/generic_barter_000091c0_1.mp3
 sound/voice/dlcthievesden.esp/redguard/m/generic_barterexit_000088a3_1.mp3                          =   sound/voice/oblivion.esm/redguard/m/generic_barterexit_000091d2_1.mp3
+sound/voice/oblivion.esm/imperial/m/dark00generalnpc_greeting_000c45bb_1.mp3                        =   sound/voice/dlcvilelair.esp/imperial/m/dlcdeepscorn_greeting_00004b9d_1.mp3
+sound/voice/oblivion.esm/imperial/m/dark00generalnpc_hello_000c45bc_1.mp3                           =   sound/voice/dlcvilelair.esp/imperial/m/dlcdeepscorn_hello_00004b9e_1.mp3
+sound/voice/knights.esp/imperial/f/nd00_ndfollow_00002b6f_1.mp3                                     =   sound/voice/knights.esp/imperial/f/nd00_ndfollow_00002b67_1.mp3
+sound/voice/knights.esp/imperial/f/nd00_ndfollow_00002b70_1.mp3                                     =   sound/voice/knights.esp/imperial/f/nd00_ndfollow_00002b6b_1.mp3
+sound/voice/knights.esp/imperial/f/nd00_ndknightstartfollow_00002c24_1.mp3                          =   sound/voice/knights.esp/imperial/f/nd00_ndknightstartfollow_00002c1c_1.mp3
+sound/voice/knights.esp/imperial/f/nd00_ndknightstartfollow_00002c25_1.mp3                          =   sound/voice/knights.esp/imperial/f/nd00_ndknightstartfollow_00002c20_1.mp3
+sound/voice/knights.esp/imperial/f/nd00_ndknightstopfollow_00002c30_1.mp3                           =   sound/voice/knights.esp/imperial/f/nd00_ndknightstopfollow_00002c28_1.mp3
+sound/voice/knights.esp/imperial/f/nd00_ndknightstopfollow_00002c31_1.mp3                           =   sound/voice/knights.esp/imperial/f/nd00_ndknightstopfollow_00002c2c_1.mp3
+sound/voice/knights.esp/imperial/f/nd00_ndwait_00002b5f_1.mp3                                       =   sound/voice/knights.esp/imperial/f/nd00_ndwait_00002b57_1.mp3
+sound/voice/knights.esp/imperial/f/nd00_ndwait_00002b60_1.mp3                                       =   sound/voice/knights.esp/imperial/f/nd00_ndwait_00002b5b_1.mp3
+sound/voice/knights.esp/nord/m/nd00_ndwait_00002b60_1.mp3                                           =   sound/voice/knights.esp/nord/m/nd00_ndwait_00002b58_1.mp3
