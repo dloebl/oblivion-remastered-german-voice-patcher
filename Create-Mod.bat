@@ -6,14 +6,10 @@ call "%~dp0scripts\settings.bat"
 setlocal enabledelayedexpansion
 
 if not exist "%DIRECTORY_ORIGINAL%" (
-    echo ERROR: Could not find Oblivion with the given path
-    pause
-    exit
+    call :throw_error "ERROR: Could not find Oblivion with the given path"
 )
 if not exist "%DIRECTORY_OBRE%" (
-    echo ERROR: Could not find Oblivion Remastered with the given path
-    pause
-    exit
+    call :throw_error "ERROR: Could not find Oblivion Remastered with the given path"
 )
 
 set "VOICES_1_BSA_ORIGINAL=%DIRECTORY_ORIGINAL%\Oblivion - Voices1.bsa"
@@ -41,14 +37,10 @@ set "DLC_3_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCThievesDen.bsa"
 set "DLC_4_BSA_OBRE=%DIRECTORY_OBRE%\Dev\ObvData\Data\DLCVilelair.bsa"
 
 if not exist "%VOICES_1_BSA_ORIGINAL%" (
-    echo ERROR: Could not find .bsa files of Oblivion with the given path. This probably means that you did not set the correct path in the 'paths.bat' file
-    pause
-    exit
+    call :throw_error "ERROR: Could not find .bsa files of Oblivion with the given path. This probably means that you did not set the correct path in the 'paths.bat' file"
 )
 if not exist "%VOICES_1_BSA_OBRE%" (
-    echo ERROR: Could not find .bsa files of Oblivion Remastered with the given path. This probably means that you did not set the correct path in the 'paths.bat' file
-    pause
-    exit
+    call :throw_error "ERROR: Could not find .bsa files of Oblivion Remastered with the given path. This probably means that you did not set the correct path in the 'paths.bat' file"
 )
 
 
@@ -59,9 +51,7 @@ if exist "%DIRECTORY_OBRE%\Paks\OblivionRemastered-Windows.pak" (
     :: Xbox Gamepass Version
     set "OBRE_PAK=%DIRECTORY_OBRE%\Paks\OblivionRemastered-WinGDK.pak"
 ) else (
-    echo ERROR: Could not find .pak file for Oblivion Remastered
-    pause
-    exit
+    call :throw_error "ERROR: Could not find .pak file for Oblivion Remastered"
 )
 
 set "RESULT_FOLDER_DATA=ModFiles\Content\Dev\ObvData\Data"
@@ -85,9 +75,7 @@ if not exist "%RESULT_FOLDER_DATA%\sound" (
     del /S /Q "%RESULT_FOLDER_DATA%\sound\voice\*.lip"
 
     if not exist "%RESULT_FOLDER_DATA%\sound" (
-        echo ERROR: Could not find extracted bsa files of Oblivion Remastered
-        pause
-        exit
+        call :throw_error "ERROR: Could not find extracted bsa files of Oblivion Remastered"
     )
 )
 
@@ -110,9 +98,7 @@ if not exist "%TMP_DIR%\sound" (
     del /S /Q "%TMP_DIR%\sound\voice\*.lip"
 
     if not exist "%TMP_DIR%\sound" (
-        echo ERROR: Could not find extracted .bsa files of Oblivion
-        pause
-        exit
+        call :throw_error "ERROR: Could not find extracted .bsa files of Oblivion"
     )
 )
 
@@ -122,9 +108,7 @@ if not exist "%TMP_DIR%\pak" (
     .\repak\repak.exe unpack "%OBRE_PAK%" -o "%TMP_DIR%\pak"
 
     if not exist "%TMP_DIR%\pak" (
-        echo ERROR: Could not find extracted .pak file data of Oblivion Remastered
-        pause
-        exit
+        call :throw_error "ERROR: Could not find extracted .pak file data of Oblivion Remastered"
     )
 )
 
@@ -151,9 +135,7 @@ if !AMOUNT_WEM_BEFORE! lss 47000 (
         )
 
         if !AMOUNT_MP3_AFTER! lss 47000 (
-            echo ERROR: Could not copy over .mp3 files correctly
-            pause
-            exit
+            call :throw_error "ERROR: Could not copy over .mp3 files correctly"
             
         ) else (
             :: The bsa extract folder won't be needed anymore
@@ -172,9 +154,7 @@ if !AMOUNT_WEM_BEFORE! lss 47000 (
     )
 
     if !AMOUNT_WEM_AFTER! lss 47000 (
-        echo ERROR: Could not convert .mp3 files correctly
-        pause
-        exit
+        call :throw_error "ERROR: Could not convert .mp3 files correctly"
         
     ) else (
         :: The MP3s folder is no longer needed, so we can delete it to save space
@@ -200,10 +180,7 @@ if !AMOUNT_BNK_BEFORE! lss 133000 (
     )
 
     if !AMOUNT_BNK_AFTER! lss 133000 (
-        echo ERROR: Could not create bnk files correctly
-        pause
-        exit
-        
+        call :throw_error "ERROR: Could not create bnk files correctly"
     )
 )
 
@@ -234,11 +211,17 @@ if "%size%" GTR "10485760" (
 
         echo Die Mod wurde erfolgreich erstellt!
         echo Bitte kopiere den ganzen 'Content' Ordner aus dem 'Modfiles' Ordner in dein Spielverzeichnis!
-        echo Du kannst die Konsole nun schließen.
+        
+        call :throw_error "Du kannst die Konsole nun schließen."
     )
 ) else (
-    echo ERROR: The created .pak file is less than 10MB!
+    call :throw_error "ERROR: The created .pak file is less than 10MB!"
 )
 
-pause
+call :throw_error "ERROR: An unknown error occured."
+
+:throw_error
+    echo %1
+    pause
+    exit
 exit
