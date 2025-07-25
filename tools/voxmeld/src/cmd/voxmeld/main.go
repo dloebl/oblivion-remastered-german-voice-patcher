@@ -247,9 +247,9 @@ func processFiles(wemFolder string, bnkFolder string, pakFolder string, timeStar
 
 	// Show step
 	fmt.Printf("\n====================== VOXMELD ======================\n")
-	fmt.Printf("Source:     %s\n", wemFolder)
+	fmt.Printf("Source:     	%s\n", wemFolder)
 	fmt.Printf("Files:     	%d .wem files found\n", totalFiles)
-	fmt.Printf("Status:     Start creating .bnk files\n")
+	fmt.Printf("Status:     	Start creating .bnk files\n")
 	fmt.Printf("-----------------------------------------------------\n")
 
 	// Start animation in the background

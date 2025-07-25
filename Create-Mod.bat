@@ -524,6 +524,19 @@ if !SUCCESSFUL_STEP! == 10 (
             )
             
             echo INFO: Mod creation was successful!
+
+            if "!IGNORE_MISMATCH!" == "true" (
+                echo INFO: Ignore Mismatch summary
+                
+                echo INFO: Amount to Convert expected:  !AMOUNT_TO_CONVERT_AFTER!
+                echo INFO: Amount to Convert found:     !EXPECTED_AMOUNT_AUDIOS!
+
+                echo INFO: Amount BNKs expected:        !AMOUNT_BNK_AFTER!
+                echo INFO: Amount BNKs found:           !EXPECTED_AMOUNT_BNKS!
+
+                echo Please inform us on Discord if 'expected' and 'found' do not match so we can fix it
+            )
+
             call "%~dp0tools\scripts\batch\install-mod.bat"
             call :throw_error "You can close the window now"
         ) else (
