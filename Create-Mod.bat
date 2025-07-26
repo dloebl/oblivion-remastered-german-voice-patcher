@@ -2,9 +2,9 @@
 chcp 65001
 setlocal enabledelayedexpansion
 
+:: Make sure we operate from the right directory
 cd /d "%~dp0"
 
-call "%~dp0paths.bat"
 call "%~dp0tools\scripts\batch\get-settings.bat"
 cls
 
@@ -348,11 +348,11 @@ if !SUCCESSFUL_STEP! == 10 (
     echo Building the Mod PAK file...
 
     :: Final step. Build the mod PAK file
-    cmd /c .\tools\repak\repak.exe pack -m "../../../OblivionRemastered" --version V11 "%CONVERT_FOLDER_BNK%\\" "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_%VERSION_NUMBER%_P.pak"
+    cmd /c .\tools\repak\repak.exe pack -m "../../../OblivionRemastered" --version V11 "%CONVERT_FOLDER_BNK%\\" "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak"
 
-    if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak" (
+    if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v!VERSION!_P.pak" (
         set size=0
-        for %%A in ("%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v%VERSION_NUMBER%_P.pak") do set size=%%~zA
+        for %%A in ("%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v!VERSION!_P.pak") do set size=%%~zA
         :: Check if file is bigger than 10 MB
         if !size! GEQ 10485760 (
             call :update_last_step 0
