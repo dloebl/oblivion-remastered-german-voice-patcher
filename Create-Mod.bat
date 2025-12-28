@@ -2,6 +2,8 @@
 chcp 65001
 setlocal enabledelayedexpansion
 
+cd /d "%~dp0"
+
 :: Check for update of patcher
 ::call "%~dp0tools\scripts\batch\check-update.bat"
 
@@ -267,7 +269,7 @@ if !SUCCESSFUL_STEP! == 1 (
 if !SUCCESSFUL_STEP! == 2 (
     echo STEP: Extracting .pak file from Oblivion Remastered...
 
-    cmd /c .\tools\repak\repak.exe unpack "%OBRE_PAK%" -o "%EXTRACT_FOLDER_PAK_REMASTER%"
+    .\tools\repak\repak.exe unpack "%OBRE_PAK%" -o "%EXTRACT_FOLDER_PAK_REMASTER%"
 
     if not exist "%EXTRACT_FOLDER_PAK_REMASTER%" (
         call :throw_error "ERROR: Could not extract .pak file of Oblivion Remastered"
@@ -504,7 +506,7 @@ if !SUCCESSFUL_STEP! == 9 (
 if !SUCCESSFUL_STEP! == 10 (
     :: Final step. Build the mod PAK file
     echo STEP: Creating .pak file...
-    cmd /c .\tools\repak\repak.exe pack -m "../../../OblivionRemastered" --version V11 "%CONVERT_FOLDER_BNK%\\" "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak"
+    .\tools\repak\repak.exe pack -m "../../../OblivionRemastered" --version V11 "%CONVERT_FOLDER_BNK%\\" "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak"
 
     if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak" (
         set size=0
