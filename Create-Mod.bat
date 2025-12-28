@@ -269,7 +269,17 @@ if !SUCCESSFUL_STEP! == 1 (
 if !SUCCESSFUL_STEP! == 2 (
     echo STEP: Extracting .pak file from Oblivion Remastered...
 
-    .\tools\repak\repak.exe unpack "%OBRE_PAK%" -o "%EXTRACT_FOLDER_PAK_REMASTER%"
+    set "TEST_FILE=%~dp0tools\repak\write_test.tmp"
+
+    > "%TEST_FILE%" echo test 2>nul
+
+    if exist "%TEST_FILE%" (
+        del "%TEST_FILE%"
+    ) else (
+        call :throw_error "ERROR: Patcher does not have enough write permissions! Please check folder permissions for patcher folder and subfolders."
+    )
+
+    cmd /c .\tools\repak\repak.exe unpack "%OBRE_PAK%" -o "%EXTRACT_FOLDER_PAK_REMASTER%"
 
     if not exist "%EXTRACT_FOLDER_PAK_REMASTER%" (
         call :throw_error "ERROR: Could not extract .pak file of Oblivion Remastered"
@@ -506,7 +516,7 @@ if !SUCCESSFUL_STEP! == 9 (
 if !SUCCESSFUL_STEP! == 10 (
     :: Final step. Build the mod PAK file
     echo STEP: Creating .pak file...
-    .\tools\repak\repak.exe pack -m "../../../OblivionRemastered" --version V11 "%CONVERT_FOLDER_BNK%\\" "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak"
+    cmd /c .\tools\repak\repak.exe pack -m "../../../OblivionRemastered" --version V11 "%CONVERT_FOLDER_BNK%\\" "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak"
 
     if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak" (
         set size=0
