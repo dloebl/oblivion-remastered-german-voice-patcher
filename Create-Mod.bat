@@ -41,6 +41,15 @@ echo STEP: Initialising patcher...
 set "CONFIG_FILE=%~dp0config\settings.txt"
 set "AMOUNTS_FILE=%~dp0custom\german\amounts.txt"
 set "LAST_SUCCESSFUL_STEP_FILE=%~dp0tmp\lastStep.txt"
+set "TEST_FILE=%~dp0tools\repak\writeCheck.tmp"
+
+copy NUL "%TEST_FILE%" >nul 2>nul
+
+if exist "%TEST_FILE%" (
+    del "%TEST_FILE%" >nul 2>nul
+) else (
+    call :throw_error "ERROR: Patcher does not have enough write permissions! Please check folder permissions for patcher folder and subfolders."
+)
 
 :: Load settings file
 if exist "%CONFIG_FILE%" (
@@ -268,16 +277,6 @@ if !SUCCESSFUL_STEP! == 1 (
 
 if !SUCCESSFUL_STEP! == 2 (
     echo STEP: Extracting .pak file from Oblivion Remastered...
-
-    set "TEST_FILE=%~dp0tools\repak\write_test.tmp"
-
-    > "%TEST_FILE%" echo test 2>nul
-
-    if exist "%TEST_FILE%" (
-        del "%TEST_FILE%"
-    ) else (
-        call :throw_error "ERROR: Patcher does not have enough write permissions! Please check folder permissions for patcher folder and subfolders."
-    )
 
     cmd /c .\tools\repak\repak.exe unpack "%OBRE_PAK%" -o "%EXTRACT_FOLDER_PAK_REMASTER%"
 
