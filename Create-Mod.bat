@@ -41,15 +41,6 @@ echo STEP: Initialising patcher...
 set "CONFIG_FILE=%~dp0config\settings.txt"
 set "AMOUNTS_FILE=%~dp0custom\german\amounts.txt"
 set "LAST_SUCCESSFUL_STEP_FILE=%~dp0tmp\lastStep.txt"
-set "TEST_FILE=%~dp0tools\repak\writeCheck.tmp"
-
-copy NUL "%TEST_FILE%" >nul 2>nul
-
-if exist "%TEST_FILE%" (
-    del "%TEST_FILE%" >nul 2>nul
-) else (
-    call :throw_error "ERROR: Patcher does not have enough write permissions! Please check folder permissions for patcher folder and subfolders."
-)
 
 :: Load settings file
 if exist "%CONFIG_FILE%" (
