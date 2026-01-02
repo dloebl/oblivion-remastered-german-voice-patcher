@@ -26,5 +26,5 @@ jobs:
       with:
         go-version: '1.24'
     - name: Build
-      working-directory: ./voxmeld/src/
+      working-directory: ./tools/voxmeld/src/
       run: go build -v -o . ./...
