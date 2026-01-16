@@ -27,11 +27,21 @@ if exist "%CONFIG_FILE%" (
         call :check_path "!DIRECTORY_OBRE!" "Dev\ObvData\Data\Oblivion - Voices1.bsa" "Oblivion Remastered" "eingabe_obre"
     )
 
+    if defined DIRECTORY_BACKUP (
+        if not exist "!DIRECTORY_BACKUP!\" (
+            call :check_path "!DIRECTORY_BACKUP!" "" "backup directory" "eingabe_backup"
+        )
+    ) else (
+        call :check_path "!DIRECTORY_BACKUP!" "" "backup directory" "eingabe_backup"
+    )
+
     if not defined REMOVE_TEMP_FILES (
         call :prompt_flag "Remove temporary files after successfully creating the mod" "REMOVE_TEMP_FILES"
     )
 
-    set "VERSION_NUMBER=0.4.3"
+    if not defined IGNORE_MISMATCH (
+        echo IGNORE_MISMATCH=false>> "%CONFIG_FILE%"
+    )
 ) else (
     goto eingabe_obre
 )
@@ -80,6 +90,11 @@ goto manager
 :eingabe_obre
 cls
 call :prompt_path "Please enter the path to Oblivion Remastered" "Dev\ObvData\Data\Oblivion - Voices1.bsa" "DIRECTORY_OBRE" "Example path: '...\Steam\SteamApps\common\Oblivion Remastered\OblivionRemastered\Content'"
+goto manager
+
+:eingabe_backup
+cls
+call :prompt_path "Please choose a folder for us to backup files in" "" "DIRECTORY_BACKUP" "This directory is used to save the original version of files we have to modify"
 goto manager
 
 

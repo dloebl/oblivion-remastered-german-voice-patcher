@@ -2,11 +2,36 @@
 chcp 65001
 setlocal enabledelayedexpansion
 
-:: Make sure we operate from the right directory
 cd /d "%~dp0"
+
+:: Check for update of patcher
+::call "%~dp0tools\scripts\batch\check-update.bat"
 
 call "%~dp0tools\scripts\batch\get-settings.bat"
 cls
+
+
+set "VERSION_FILE=%~dp0config\version.txt"
+
+if not exist "%VERSION_FILE%" (
+    call :throw_error "ERROR: Version file not found at %VERSION_FILE%"
+)
+set /p VERSION=<"%VERSION_FILE%"
+
+echo =======================================================================================
+echo ===                                                                                 ===
+echo ===                Oblivion Remastered German Voice Patcher !VERSION!                  ===
+echo ===                                                                                 ===
+echo =======================================================================================
+echo === Nexusmods: https://www.nexusmods.com/oblivionremastered/mods/1092               ===
+echo === Github:    https://github.com/dloebl/oblivion-remastered-german-voice-patcher   ===
+echo === Discord:   https://discord.gg/CTsmFfj5                                          ===
+echo =======================================================================================
+
+timeout /t 2 >nul
+
+echo Execution directory: "%~dp0"
+echo STEP: Initialising patcher...
 
 
 :: =================================================================
@@ -53,6 +78,7 @@ if exist "%AMOUNTS_FILE%" (
     call :throw_error "ERROR: No amounts file found"
 )
 
+
 :: =================================================================
 :: Set Paths
 :: =================================================================
@@ -72,22 +98,21 @@ set "VOICES_2_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%VOICES_2%.bsa"
 set "SHIVERING_ISLES_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%SHIVERING_ISLES%.bsa"
 set "KNIGHTS_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%KNIGHTS%.bsa"
 
-if not exist "%VOICES_1_BSA_ORIGINAL%" (
-    call :throw_error "ERROR: Could not find .bsa files for original Oblivion"
-)
-
 for %%A in ("%VOICES_1_BSA_ORIGINAL%") do set "size_base=%%~zA"
 if !size_base! NEQ !EXPECTED_SIZE_BASE! (
-    echo ERROR: Original Oblivion has incorrect size. Amount: !size_base! bytes
-    call :throw_error "This probably means that your original oblivion files are in english"
+    if "!IGNORE_MISMATCH!" == "true" (
+        echo INFO: Original Oblivion has incorrect size. Amount: !size_base! bytes
+        echo INFO: Will continue since 'ignore mismatch' setting is enabled
+    ) else (
+        echo ERROR: Original Oblivion has incorrect size. Amount: !size_base! bytes
+        call :throw_error "This probably means that your original oblivion files are in english"
+    )
 )
 
 echo INFO: Checking for optional DLC in original Oblivion
-
+:: Optional DLC
 if exist "!DIRECTORY_ORIGINAL!\%DLC_1%.bsa" (
     for %%A in ("!DIRECTORY_ORIGINAL!\%DLC_1%.bsa") do set "size_dlc=%%~zA"
-    
-    :: Check if DLC has expected size for german translation
     if !size_dlc! EQU !EXPECTED_SIZE_DLC! (
         echo INFO: DLC for original Oblivion were found!
 
@@ -96,13 +121,12 @@ if exist "!DIRECTORY_ORIGINAL!\%DLC_1%.bsa" (
         set "DLC_3_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_3%.bsa"
         set "DLC_4_BSA_ORIGINAL=!DIRECTORY_ORIGINAL!\%DLC_4%.bsa"
 
-        :: Change amounts to use DLC count for later checks
+        :: Change amounts to use for later checks to DLC count
         set EXPECTED_AMOUNT_AUDIOS=!EXPECTED_AMOUNT_AUDIOS_WITH_DLC!
         set EXPECTED_AMOUNT_BNKS=!EXPECTED_AMOUNT_BNKS_WITH_DLC!
     ) else (
-        set SIZE_ENGLISH_DLC=4018605
 
-        if !size_dlc! EQU %SIZE_ENGLISH_DLC% (
+        if !size_dlc! EQU 4018605 (
             echo INFO: Optional DLC were found but are in english
             echo INFO: This usually means that both the GOTY and GOTY Deluxe editions are installed at the same time.
             echo INFO: This is no problem, optional DLC will be ignored and patcher will proceed.
@@ -114,18 +138,37 @@ if exist "!DIRECTORY_ORIGINAL!\%DLC_1%.bsa" (
     echo INFO: DLC for original Oblivion could not be found!
 )
 
-set "VOICES_1_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%VOICES_1%.bsa"
-set "VOICES_2_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%VOICES_2%.bsa"
-set "SHIVERING_ISLES_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%SHIVERING_ISLES%.bsa"
-set "KNIGHTS_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%KNIGHTS%.bsa"
+if not exist "%VOICES_1_BSA_ORIGINAL%" (
+    call :throw_error "ERROR: Could not find .bsa files for original Oblivion"
+)
+
+set "VOICES_1_BSA_OBRE=!DIRECTORY_BACKUP!\%VOICES_1%.bsa"
+set "VOICES_2_BSA_OBRE=!DIRECTORY_BACKUP!\%VOICES_2%.bsa"
+set "SHIVERING_ISLES_BSA_OBRE=!DIRECTORY_BACKUP!\%SHIVERING_ISLES%.bsa"
+set "KNIGHTS_BSA_OBRE=!DIRECTORY_BACKUP!\%KNIGHTS%.bsa"
 :: Optional DLC
-set "DLC_1_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%DLC_1%.bsa"
-set "DLC_2_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%DLC_2%.bsa"
-set "DLC_3_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%DLC_3%.bsa"
-set "DLC_4_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%DLC_4%.bsa"
+set "DLC_1_BSA_OBRE=!DIRECTORY_BACKUP!\%DLC_1%.bsa"
+set "DLC_2_BSA_OBRE=!DIRECTORY_BACKUP!\%DLC_2%.bsa"
+set "DLC_3_BSA_OBRE=!DIRECTORY_BACKUP!\%DLC_3%.bsa"
+set "DLC_4_BSA_OBRE=!DIRECTORY_BACKUP!\%DLC_4%.bsa"
 
 if not exist "%VOICES_1_BSA_OBRE%" (
-    call :throw_error "ERROR: Could not find .bsa files for Oblivion Remastered"
+    :: Use normal game files instead
+    if exist "!DIRECTORY_OBRE!\Dev\ObvData\Data\%VOICES_1%.bsa" (
+        set "VOICES_1_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%VOICES_1%.bsa"
+        set "VOICES_2_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%VOICES_2%.bsa"
+        set "SHIVERING_ISLES_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%SHIVERING_ISLES%.bsa"
+        set "KNIGHTS_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%KNIGHTS%.bsa"
+        :: Optional DLC
+        set "DLC_1_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%DLC_1%.bsa"
+        set "DLC_2_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%DLC_2%.bsa"
+        set "DLC_3_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%DLC_3%.bsa"
+        set "DLC_4_BSA_OBRE=!DIRECTORY_OBRE!\Dev\ObvData\Data\%DLC_4%.bsa"
+    ) else (
+        call :throw_error "ERROR: Could not find .bsa files for Oblivion Remastered"
+    )
+) else (
+    echo INFO: Found backup files!
 )
 
 if exist "!DIRECTORY_OBRE!\Paks\OblivionRemastered-Windows.pak" (
@@ -173,76 +216,119 @@ if exist "%LAST_SUCCESSFUL_STEP_FILE%" (
 )
 
 
+:: =================================================================
+:: Extract original .bsa files
+:: =================================================================
+
 if !SUCCESSFUL_STEP! == 0 (
-    echo STEP: Extracting .bsa files from Oblivion Remastered...
+    echo STEP: Extracting .bsa files from original Oblivion...
+    
+    if defined DLC_1_BSA_ORIGINAL (
+        cmd /c .\tools\BSArch\bsa-multi.exe -o "%EXTRACT_FOLDER_BSA_ORIGINAL%" "%VOICES_1_BSA_ORIGINAL%" "%VOICES_2_BSA_ORIGINAL%" "%SHIVERING_ISLES_BSA_ORIGINAL%" "%KNIGHTS_BSA_ORIGINAL%" "%DLC_1_BSA_ORIGINAL%" "%DLC_2_BSA_ORIGINAL%" "%DLC_3_BSA_ORIGINAL%" "%DLC_4_BSA_ORIGINAL%"
+    ) else (
+        cmd /c .\tools\BSArch\bsa-multi.exe -o "%EXTRACT_FOLDER_BSA_ORIGINAL%" "%VOICES_1_BSA_ORIGINAL%" "%VOICES_2_BSA_ORIGINAL%" "%SHIVERING_ISLES_BSA_ORIGINAL%" "%KNIGHTS_BSA_ORIGINAL%"
+    )
 
-    :: Extract the remaster .bsa files with VO
-    cmd /c .\tools\BSArch\bsa-multi.exe -o "%RESULT_FOLDER_DATA%" "%VOICES_1_BSA_OBRE%" "%VOICES_2_BSA_OBRE%" "%SHIVERING_ISLES_BSA_OBRE%" "%KNIGHTS_BSA_OBRE%" "%DLC_1_BSA_OBRE%" "%DLC_2_BSA_OBRE%" "%DLC_3_BSA_OBRE%" "%DLC_4_BSA_OBRE%"
+    echo INFO: Unused files are being removed...
 
-    :: We only need mp3 files from sound/voice
-    rd /s /q "%RESULT_FOLDER_DATA%\meshes" >nul
-    rd /s /q "%RESULT_FOLDER_DATA%\sound\fx" >nul
-    rd /s /q "%RESULT_FOLDER_DATA%\textures" >nul
-    del /S /Q "%RESULT_FOLDER_DATA%\sound\voice\*.lip" >nul
+    :: We only need mp3 files from sound/voice 
+    rd /s /q "%EXTRACT_FOLDER_BSA_ORIGINAL%\meshes" >nul
+    rd /s /q "%EXTRACT_FOLDER_BSA_ORIGINAL%\textures" >nul
+    rd /s /q "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\fx" >nul
+    del /S /Q "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\voice\*.lip" >nul
 
-    if not exist "%RESULT_FOLDER_DATA%\sound" (
-        call :throw_error "ERROR: Could not find extracted bsa files of Oblivion Remastered"
+    if not exist "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound" (
+        call :throw_error "ERROR: Could not extract .bsa files of original Oblivion"
     )
 
     call :update_last_step 1
 )
 
+
+:: =================================================================
+:: Extract remaster .bsa files
+:: =================================================================
+
 if !SUCCESSFUL_STEP! == 1 (
-    :: Extract the original MP3s from all original .bsa voice files
-    .\tools\BSArch\bsa-multi.exe -o "%EXTRACT_FOLDER_BSA_ORIGINAL%" "%VOICES_1_BSA_ORIGINAL%" "%VOICES_2_BSA_ORIGINAL%" "%SHIVERING_ISLES_BSA_ORIGINAL%" "%KNIGHTS_BSA_ORIGINAL%" "%DLC_1_BSA_ORIGINAL%" "%DLC_2_BSA_ORIGINAL%" "%DLC_3_BSA_ORIGINAL%" "%DLC_4_BSA_ORIGINAL%"
+    echo STEP: Extracting .bsa files from Oblivion Remastered...
 
-    :: Copy intro and outro
-    call :check_and_create_folder "%CONVERT_FOLDER_TO_CONVERT%"
-    copy "!DIRECTORY_ORIGINAL!\Video\OblivionIntro.bik" "%CONVERT_FOLDER_TO_CONVERT%\scripted_intro_play.bik"
-    copy "!DIRECTORY_ORIGINAL!\Video\OblivionOutro.bik" "%CONVERT_FOLDER_TO_CONVERT%\scripted_outro_play.bik"
+    cmd /c .\tools\BSArch\bsa-multi.exe -o1 "%EXTRACT_FOLDER_BSA_REMASTER%\%VOICES_1%.bsa" -o2 "%EXTRACT_FOLDER_BSA_REMASTER%\%VOICES_2%.bsa" -o3 "%EXTRACT_FOLDER_BSA_REMASTER%\%SHIVERING_ISLES%.bsa" -o4 "%EXTRACT_FOLDER_BSA_REMASTER%\%KNIGHTS%.bsa" -o5 "%EXTRACT_FOLDER_BSA_REMASTER%\%DLC_1%.bsa" -o6 "%EXTRACT_FOLDER_BSA_REMASTER%\%DLC_2%.bsa" -o7 "%EXTRACT_FOLDER_BSA_REMASTER%\%DLC_3%.bsa" -o8 "%EXTRACT_FOLDER_BSA_REMASTER%\%DLC_4%.bsa" "%VOICES_1_BSA_OBRE%" "%VOICES_2_BSA_OBRE%" "%SHIVERING_ISLES_BSA_OBRE%" "%KNIGHTS_BSA_OBRE%" "%DLC_1_BSA_OBRE%" "%DLC_2_BSA_OBRE%" "%DLC_3_BSA_OBRE%" "%DLC_4_BSA_OBRE%"
 
-    :: We only need mp3 files from sound/voice 
-    rd /s /q "%EXTRACT_FOLDER_BSA_ORIGINAL%\meshes" >nul
-    rd /s /q "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\fx" >nul
-    rd /s /q "%EXTRACT_FOLDER_BSA_ORIGINAL%\textures" >nul
-    del /S /Q "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound\voice\*.lip" >nul
-
-    if not exist "%EXTRACT_FOLDER_BSA_ORIGINAL%\sound" (
-        call :throw_error "ERROR: Could not find extracted .bsa files of Oblivion"
+    if not exist "%EXTRACT_FOLDER_BSA_REMASTER%\%VOICES_1%.bsa" (
+        call :throw_error "ERROR: Could not extract .bsa files of Oblivion Remastered"
     )
-    
+
     call :update_last_step 2
 )
 
+
+:: =================================================================
+:: Extract remaster pak file
+:: =================================================================
+
 if !SUCCESSFUL_STEP! == 2 (
-    :: Extract the BNKs from the OblivionRemastered-Windows.pak
-    echo Extracting Pak file from the Oblivion Remastered...
+    echo STEP: Extracting .pak file from Oblivion Remastered...
 
     cmd /c .\tools\repak\repak.exe unpack "%OBRE_PAK%" -o "%EXTRACT_FOLDER_PAK_REMASTER%"
 
     if not exist "%EXTRACT_FOLDER_PAK_REMASTER%" (
         call :throw_error "ERROR: Could not extract .pak file of Oblivion Remastered"
     )
-    
+
     call :update_last_step 3
 )
 
+
+:: =================================================================
+:: Copy mp3s to folder with files to convert
+:: =================================================================
 if !SUCCESSFUL_STEP! == 3 (
+    echo STEP: Renaming localized folders...
+
+    cmd /c .\tools\voxmeld\rename-localized-folders.exe
+
     call :update_last_step 4
 )
 
+
+:: =================================================================
+:: Apply replace fix
+:: =================================================================
+
 if !SUCCESSFUL_STEP! == 4 (
+    echo STEP: Applying replace fix...
+
+    cmd /c .\tools\voxmeld\apply-replace-fix.exe
+
     call :update_last_step 5
 )
 
+
+:: =================================================================
+:: Apply voice fix
+:: =================================================================
+
 if !SUCCESSFUL_STEP! == 5 (
+    echo STEP: Applying voice fix...
+
+    cmd /c .\tools\voxmeld\apply-voice-fix.exe
+
     call :update_last_step 6
 )
 
-if !SUCCESSFUL_STEP! == 6 (
-    :: Check amount of mp3 files. Below 47000 would mean that most likely files are missing or the code did not run yet
 
-    :: Copy all mp3 files to their respective folders
+:: =================================================================
+:: Copy files to convert in the 'toConvert' folder
+:: =================================================================
+
+if !SUCCESSFUL_STEP! == 6 (
+    echo STEP: Preparing files to convert...
+
+    :: Copy intro and outro
+    call :check_and_create_folder "%CONVERT_FOLDER_TO_CONVERT%"
+    copy "!DIRECTORY_ORIGINAL!\Video\OblivionIntro.bik" "%CONVERT_FOLDER_TO_CONVERT%\scripted_intro_play.bik"
+    copy "!DIRECTORY_ORIGINAL!\Video\OblivionOutro.bik" "%CONVERT_FOLDER_TO_CONVERT%\scripted_outro_play.bik"
+
     cmd /c .\tools\voxmeld\change-prefix-move-mp3s.exe
 
     if exist "%CONVERT_FOLDER_TO_CONVERT%" (
@@ -250,7 +336,12 @@ if !SUCCESSFUL_STEP! == 6 (
         for /f %%A in ('dir /a-d /b "%CONVERT_FOLDER_TO_CONVERT%" 2^>nul ^| find /v /c ""') do set AMOUNT_TO_CONVERT_AFTER=%%A
 
         if !AMOUNT_TO_CONVERT_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
-            call :throw_error "ERROR: Amount of files to convert does not match the expected amount. Expected: !EXPECTED_AMOUNT_AUDIOS!, Got: !AMOUNT_TO_CONVERT_AFTER!"
+            if "!IGNORE_MISMATCH!" == "true" (
+                echo INFO: Incorrect amount of files to convert found.
+                echo INFO: Will continue since 'ignore mismatch' setting is enabled
+            ) else (
+                call :throw_error "ERROR: Amount of files to convert does not match the expected amount. Expected: !EXPECTED_AMOUNT_AUDIOS!, Got: !AMOUNT_TO_CONVERT_AFTER!"
+            )
         )
 
         call :update_last_step 7
@@ -259,15 +350,56 @@ if !SUCCESSFUL_STEP! == 6 (
     )
 )
 
+
+:: =================================================================
+:: Pack .bsa files with voice fix included
+:: =================================================================
+
 if !SUCCESSFUL_STEP! == 7 (
-    call :update_last_step 8
+    echo STEP: Creating .bsa files...
+
+    for /d %%F in ("%EXTRACT_FOLDER_BSA_REMASTER%\*") do (
+        cmd /c .\tools\BSArch\BSArch.exe pack "%%F" "..\..\..\%RESULT_FOLDER_DATA%\%%~nF.bsa" -tes4 -share -mt 
+    )
+
+    set AMOUNT_BSA_AFTER=0
+    if exist "%RESULT_FOLDER_DATA%" (
+        for %%F in ("%RESULT_FOLDER_DATA%\*") do (
+            if not exist "%%F\" (
+                set /a AMOUNT_BSA_AFTER+=1
+            )
+        )
+
+        if !AMOUNT_BSA_AFTER! == 0 (
+            call :throw_error "ERROR: Could not create .bsa files"
+        )
+
+        :: The bsa extract folders won't be needed anymore
+        if "!REMOVE_TEMP_FILES!" == "true" (
+            echo INFO: Temporary files are being removed...
+
+            rd /s /q "%EXTRACT_FOLDER_BSA_ORIGINAL%" >nul
+            rd /s /q "%EXTRACT_FOLDER_BSA_REMASTER%" >nul
+        )
+
+        call :update_last_step 8
+    ) else (
+        call :throw_error "ERROR: Could not find folder with final .bsa files"
+    )
 )
 
-if !SUCCESSFUL_STEP! == 8 (
-    :: Convert all MP3s to WEMs with Vorbis codec (this is going to take quite a while)
-    cmd /c .\tools\sound2wem\sound2wem.exe "%CONVERT_FOLDER_TO_CONVERT%\*"
 
-    :: Rename folder from Windows for to wem
+:: =================================================================
+:: Convert mp3 and video files to wav and wem
+:: =================================================================
+
+if !SUCCESSFUL_STEP! == 8 (
+    echo STEP: Converting files to .wem... 
+
+    :: Convert all MP3s to WEMs with Vorbis codec
+    cmd /c .\tools\sound2wem\sound2wem-go.exe "%CONVERT_FOLDER_TO_CONVERT%\*"
+
+    :: Rename folder for to wem
     if exist "%CONVERT_FOLDER_WEM%\..\Windows" (
         ren "%CONVERT_FOLDER_WEM%\..\Windows" "wem"
     )
@@ -286,8 +418,13 @@ if !SUCCESSFUL_STEP! == 8 (
 				)
 
 				if !AMOUNT_WAV_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
-                    echo ERROR: !AMOUNT_WAV_AFTER! .wav files does not match the expected amount
-                    call :throw_error "This probably means that there was an error while converting a file"
+                    if "!IGNORE_MISMATCH!" == "true" (
+                        echo INFO: Incorrect amount of .wav files found.
+                        echo INFO: Will continue since 'ignore mismatch' setting is enabled
+                    ) else (
+                        echo ERROR: !AMOUNT_WAV_AFTER! .wav files does not match the expected amount
+					    call :throw_error "This probably means that there was an error while converting a file"
+                    )
 				)
 
 				call :throw_error "ERROR: An unknown error occured while converting .wav files"
@@ -297,8 +434,13 @@ if !SUCCESSFUL_STEP! == 8 (
         )
 
         if !AMOUNT_WEM_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
-            echo ERROR: !AMOUNT_WEM_AFTER! .wem files does not match the expected amount
-            call :throw_error "This probably means that there was an error while converting a file"
+            if "!IGNORE_MISMATCH!" == "true" (
+                echo INFO: Incorrect amount of .wav files found.
+                echo INFO: Will continue since 'ignore mismatch' setting is enabled
+            ) else (
+                echo ERROR: !AMOUNT_WEM_AFTER! .wem files does not match the expected amount
+                call :throw_error "This probably means that there was an error while converting a file"
+            )
         )
 
         echo INFO: Successfully created !AMOUNT_WEM_AFTER! .wem files.
@@ -317,64 +459,92 @@ if !SUCCESSFUL_STEP! == 8 (
     )
 )
 
+
+:: =================================================================
+:: Generate .bnk files
+:: =================================================================
+
 if !SUCCESSFUL_STEP! == 9 (
-    :: Patch the BNKs, update the WEMs file names and copy everything to the output folder in one go
+    echo STEP: Creating .bnk files...
+
+    :: Create .bnk files
     cmd /c .\tools\voxmeld\voxmeld.exe
 
-    if exist "%CONVERT_FOLDER_BNK_EVENT%\English(US)" (
-        set AMOUNT_BNK_AFTER=0
-        for /f %%A in ('dir /a-d /b "%CONVERT_FOLDER_BNK_EVENT%\English(US)" 2^>nul ^| find /v /c ""') do set AMOUNT_BNK_AFTER=%%A
-        
+	if exist "%CONVERT_FOLDER_BNK_EVENT%\English(US)" (
+		set AMOUNT_BNK_AFTER=0
+		for /f %%A in ('dir /a-d /b "%CONVERT_FOLDER_BNK_EVENT%\English(US)" 2^>nul ^| find /v /c ""') do set AMOUNT_BNK_AFTER=%%A
+
 		if !AMOUNT_BNK_AFTER! EQU 0 (
 			call :throw_error "ERROR: Could not create .bnk files"
 		)
 
-		:: Add 2 for video bnks in different folder
+		:: Add 2 for video bnks
 		set /a AMOUNT_BNK_AFTER=!AMOUNT_BNK_AFTER! + 2
 
-        if !AMOUNT_BNK_AFTER! NEQ !EXPECTED_AMOUNT_BNKS! (
-            call :throw_error "ERROR: !AMOUNT_BNK_AFTER! .bnk files does not match the expected amount"
-        )
+		if !AMOUNT_BNK_AFTER! NEQ !EXPECTED_AMOUNT_BNKS! (
+            if "!IGNORE_MISMATCH!" == "true" (
+                echo INFO: Incorrect amount of .bnk files found.
+                echo INFO: Will continue since 'ignore mismatch' setting is enabled
+            ) else (
+                call :throw_error "ERROR: !AMOUNT_BNK_AFTER! .bnk files does not match the expected amount"
+            )
+		)
 
 		echo INFO: Successfully created !AMOUNT_BNK_AFTER! .bnk files.
-    
-        call :update_last_step 10
-    ) else (
+
+		call :update_last_step 10
+	) else (
         call :throw_error "ERROR: Could not find folder with .bnk files"
     )
 )
 
-if !SUCCESSFUL_STEP! == 10 (
-    echo Building the Mod PAK file...
 
+:: =================================================================
+:: Build new .pak .and bsa files
+:: =================================================================
+
+if !SUCCESSFUL_STEP! == 10 (
     :: Final step. Build the mod PAK file
+    echo STEP: Creating .pak file...
     cmd /c .\tools\repak\repak.exe pack -m "../../../OblivionRemastered" --version V11 "%CONVERT_FOLDER_BNK%\\" "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak"
 
-    if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v!VERSION!_P.pak" (
+    if exist "%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak" (
         set size=0
-        for %%A in ("%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_v!VERSION!_P.pak") do set size=%%~zA
-        :: Check if file is bigger than 10 MB
+        for %%A in ("%RESULT_FOLDER_PAK%\german-voices-oblivion-remastered-voxmeld_!VERSION!_P.pak") do set size=%%~zA
+
+        :: Check if file is bigger than 10 MB. Broke files usually only are a few KB in size
         if !size! GEQ 10485760 (
             call :update_last_step 0
-            echo Die .pak Datei wurde erfolgreich erstellt.
+            echo INFO: The .pak creation was successful!
             :: Delete rest of temporary files
             if "!REMOVE_TEMP_FILES!" == "true" (
-                echo Temporärdateien werden entfernt...
+                echo INFO: Temporary files are being removed...
 
                 rd /s /q "%TMP_DIR%" >nul
             )
-
-            echo Die Mod wurde erfolgreich erstellt!
-            echo Bitte kopiere den ganzen 'Content' Ordner aus dem 'Modfiles' Ordner in dein Spielverzeichnis!
             
-            call :throw_error "Du kannst die Konsole nun schließen."
+            echo INFO: Mod creation was successful!
+
+            if "!IGNORE_MISMATCH!" == "true" (
+                echo INFO: Ignore Mismatch summary
+                
+                echo INFO: Amount to Convert expected:  !AMOUNT_TO_CONVERT_AFTER!
+                echo INFO: Amount to Convert found:     !EXPECTED_AMOUNT_AUDIOS!
+
+                echo INFO: Amount BNKs expected:        !AMOUNT_BNK_AFTER!
+                echo INFO: Amount BNKs found:           !EXPECTED_AMOUNT_BNKS!
+
+                echo Please inform us on Discord if 'expected' and 'found' do not match so we can fix it
+            )
+
+            call "%~dp0tools\scripts\batch\install-mod.bat"
+            call :throw_error "You can close the window now"
         ) else (
             call :throw_error "ERROR: The created .pak file is less than 10MB!"
         )
     ) else (
         call :throw_error "ERROR: The .pak could not be created"
     )
-
 )
 
 call :throw_error "ERROR: An unknown error occured. Last working step: !SUCCESSFUL_STEP!"

@@ -1,0 +1,10 @@
+::Structure:
+::localizedFolderName = englishFolderName
+argonien				=	argonian
+drémora             	=   dremora
+haut elfe				=	high_elf
+nordique            	=   nord
+rougegarde				=	redguard
+saint doré      		=	golden_saint
+shéogorath              =   sheogorath
+vil séducteur	    	=	dark_seducer

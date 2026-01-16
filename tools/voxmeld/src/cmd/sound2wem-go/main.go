@@ -35,8 +35,8 @@ type Source struct {
 }
 
 // Globale Variablen für Fortschrittsanzeige
-var verarbeiteteAudios int32
-var gesamtAnzahlAudios int32
+var processedAudioFiles int32
+var totalAudioFiles int32
 
 func loadConfig(execDir string) (*Config, error) {
 	configPath := filepath.Join(execDir, "config.json")
@@ -67,58 +67,57 @@ func loadConfig(execDir string) (*Config, error) {
 	return &config, nil
 }
 
-// Funktion zum Ausgeben einer Nachricht
+// Print message function
 func printMessage(message string) {
 	fmt.Println(message)
 }
 
-// zeichneAnimiertenFortschrittsbalken stellt einen animierten Fortschrittsbalken in der Konsole dar
-func zeichneAnimiertenFortschrittsbalken(aktuellerFortschritt, gesamtAnzahl int, startZeit time.Time, animationsZähler int) {
-	breite := 40 // Breite des Balkens in Zeichen
+// updateAnimatedProgressBar stellt einen animierten Fortschrittsbar in der Konsole dar
+func updateAnimatedProgressBar(currentProgress, amountTotal int, timeStart time.Time, animationsCounter int) {
+	width := 40 // Breite des Balkens in Zeichen
 
 	// Berechne Prozentsatz
-	prozent := float64(aktuellerFortschritt) / float64(gesamtAnzahl)
+	percent := float64(currentProgress) / float64(amountTotal)
 
-	// Berechne Anzahl der gefüllten Zeichen
-	gefüllt := int(prozent * float64(breite))
+	// Berechne Anzahl der filleden Zeichen
+	filled := int(percent * float64(width))
 
 	// Animations-Zeichen
-	animationsSymbole := []string{"|", "/", "-", "\\"}
-	animationSymbol := animationsSymbole[animationsZähler%len(animationsSymbole)]
+	animationSymbols := []string{"|", "/", "-", "\\"}
+	animationSymbol := animationSymbols[animationsCounter%len(animationSymbols)]
 
-	// ASCII-Ladebalken Zeichen
-	gefülltZeichen := "#"
-	leerZeichen := "-"
+	// ASCII-Ladebar Zeichen
+	filledChar := "#"
 
-	// Erstelle den Ladebalken
-	balken := strings.Repeat(gefülltZeichen, gefüllt) + strings.Repeat(leerZeichen, breite-gefüllt)
+	// Erstelle den Ladebar
+	bar := strings.Repeat(filledChar, filled) + strings.Repeat("-", width-filled)
 
-	// Erstelle einen eingebetteten Animations-Cursor im Ladebalken
-	if gefüllt < breite {
-		position := gefüllt
-		balkenRunes := []rune(balken)
-		balkenRunes[position] = []rune(animationSymbol)[0]
-		balken = string(balkenRunes)
+	// Erstelle einen eingebetteten Animations-Cursor im Ladebar
+	if filled < width {
+		position := filled
+		barRunes := []rune(bar)
+		barRunes[position] = []rune(animationSymbol)[0]
+		bar = string(barRunes)
 	}
 
-	// Lösche die aktuelle Zeile und zeige den Balken an
-	fmt.Printf("\r[%s] %3.0f%% %d/%d Dateien verarbeitet",
-		balken, prozent*100, aktuellerFortschritt, gesamtAnzahl)
+	// Lösche die aktuelle Zeile und zeige nur den Balken ohne verstrichene Zeit an
+	fmt.Printf("\r[%s] %3.0f%% %d/%d files processed",
+		bar, percent*100, currentProgress, amountTotal)
 }
 
 func main() {
 	// Startzeit erfassen
-	startZeit := time.Now()
+	timeStart := time.Now()
 
 	if len(os.Args) < 2 {
-		printMessage("Fehler: Keine Eingabedateien angegeben")
+		printMessage("ERROR: No input files given")
 		return
 	}
 
 	// Konfiguration laden
 	execDir, err := os.Executable()
 	if err != nil {
-		printMessage(fmt.Sprintf("Fehler beim Ermitteln des Ausführungsverzeichnisses: %v", err))
+		printMessage(fmt.Sprintf("ERROR: Could not get execution path: %v", err))
 		return
 	}
 	execDir = filepath.Dir(execDir)
@@ -132,78 +131,76 @@ func main() {
 	// Wwise Projekt erstellen, falls es nicht existiert
 	projectPath := filepath.Join(execDir, config.ProjectName)
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
-		printMessage("Erstelle neues Wwise Projekt...")
+		printMessage("Creating new Wwise project...")
 		cmd := exec.Command(config.WwisePath, "create-new-project",
 			filepath.Join(projectPath, config.ProjectName+".wproj"),
 			"--quiet")
 		if err := cmd.Run(); err != nil {
-			printMessage(fmt.Sprintf("Fehler beim Erstellen des Wwise Projekts: %v", err))
+			printMessage(fmt.Sprintf("ERROR: Could not create Wwsie project: %v", err))
 			return
 		}
 	}
 
 	// Temporäres Verzeichnis erstellen
-	tempDir := filepath.Join(execDir, "audiotemp")
+	tempDir := filepath.Join(execDir, "..", "..", "tmp", "wav")
 	os.MkdirAll(tempDir, 0755)
 	// defer os.RemoveAll(tempDir)
 
-	// Anzahl der zu verarbeitenden Dateien bestimmen
-	var gesamtAnzahl int
+	var wg sync.WaitGroup
+	var totalFiles int
+	var progressMutex sync.Mutex
+	var animationsCounter int
+
+	numCPU := runtime.NumCPU()
+	semaphore := make(chan struct{}, numCPU)
+	
 	for _, pattern := range os.Args[1:] {
 		matches, _ := filepath.Glob(pattern)
-		gesamtAnzahl += len(matches)
+		totalFiles += len(matches)
 	}
-	atomic.StoreInt32(&gesamtAnzahlAudios, int32(gesamtAnzahl))
+	atomic.StoreInt32(&totalAudioFiles, int32(totalFiles))
 
 	// Zeige Step an.
 	fmt.Printf("\n====================== SOUND2WEM ======================\n")
-	fmt.Printf("Quelle:      %s\n", strings.Join(os.Args[1:], ", "))
-	fmt.Printf("Dateien:     %d Audio-Dateien gefunden\n", gesamtAnzahl)
-	fmt.Printf("Status:      Starte Konvertierung von Audio zu WEM\n")
+	fmt.Printf("Files:     	%d files found\n", totalFiles)
+	fmt.Printf("Source:     %s\n", strings.Join(os.Args[1:], ", "))
+	fmt.Printf("Status:     Starting to convert files to .wav and .wem format\n")
 	fmt.Printf("-------------------------------------------------------\n")
 
-	// Fortschrittsbalken-Variablen
-	var fortschrittsMutex sync.Mutex
-	var animationsZähler int
-
-	// Starte Animation im Hintergrund
-	animationsStopp := make(chan struct{})
+	// Start animation in the background
+	animationsStop := make(chan struct{})
 	go func() {
-		ticker := time.NewTicker(100 * time.Millisecond)
+		ticker := time.NewTicker(250 * time.Millisecond)
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ticker.C:
-				fortschrittsMutex.Lock()
-				animationsZähler++
-				zeichneAnimiertenFortschrittsbalken(
-					int(atomic.LoadInt32(&verarbeiteteAudios)),
-					int(atomic.LoadInt32(&gesamtAnzahlAudios)),
-					startZeit,
-					animationsZähler)
-				fortschrittsMutex.Unlock()
-			case <-animationsStopp:
+				progressMutex.Lock()
+				animationsCounter++
+				updateAnimatedProgressBar(
+					int(atomic.LoadInt32(&processedAudioFiles)),
+					int(atomic.LoadInt32(&totalAudioFiles)),
+					timeStart,
+					animationsCounter)
+				progressMutex.Unlock()
+			case <-animationsStop:
 				return
 			}
 		}
 	}()
 
-	// Parallel Audio-Dateien konvertieren
-	var wg sync.WaitGroup
-	numCPU := runtime.NumCPU()
-	semaphore := make(chan struct{}, numCPU)
-
-	fmt.Printf("Starte Konvertierung mit %d parallelen Prozessen...\n", numCPU)
+	fmt.Printf("Starting to convert files to .wav with %d parallel processes...\n", numCPU)
 
 	for _, pattern := range os.Args[1:] {
 		matches, _ := filepath.Glob(pattern)
 		for _, file := range matches {
 			wg.Add(1)
+			semaphore <- struct{}{}
+
 			go func(inputFile string) {
 				defer wg.Done()
-				semaphore <- struct{}{}        // Slot belegen
-				defer func() { <-semaphore }() // Slot freigeben
+				defer func() { <-semaphore }()
 
 				outputFile := filepath.Join(tempDir, filepath.Base(inputFile))
 				outputFile = outputFile[:len(outputFile)-len(filepath.Ext(outputFile))] + ".wav"
@@ -211,31 +208,30 @@ func main() {
 				cmd := exec.Command(config.FfmpegPath, "-hide_banner", "-loglevel", "warning",
 					"-i", inputFile, outputFile)
 				if err := cmd.Run(); err != nil {
-					// Reduziertes Logging
-					fmt.Printf("\nFehler bei der Konvertierung von %s: %v\n", inputFile, err)
+					fmt.Printf("\nERROR: Could not convert %s to .wem: %v\n", inputFile, err)
 				}
 
-				// Fortschritt aktualisieren
-				atomic.AddInt32(&verarbeiteteAudios, 1)
+				// Upate progress
+				atomic.AddInt32(&processedAudioFiles, 1)
 			}(file)
 		}
 	}
 	wg.Wait()
 
-	// Animationsschleife stoppen
-	close(animationsStopp)
+	// Stop animation loop
+	close(animationsStop)
 	time.Sleep(200 * time.Millisecond) // Kurz warten, damit die Animation sauber beendet wird
 
-	// Zeige finalen Fortschrittsbalken
-	fortschrittsMutex.Lock()
-	zeichneAnimiertenFortschrittsbalken(
-		int(atomic.LoadInt32(&verarbeiteteAudios)),
-		int(atomic.LoadInt32(&gesamtAnzahlAudios)),
-		startZeit,
-		animationsZähler)
-	fortschrittsMutex.Unlock()
+	// Show final progress bar
+	progressMutex.Lock()
+	updateAnimatedProgressBar(
+		int(atomic.LoadInt32(&processedAudioFiles)),
+		int(atomic.LoadInt32(&totalAudioFiles)),
+		timeStart,
+		animationsCounter)
+	progressMutex.Unlock()
 
-	fmt.Println("\n\nAlle Audio-Dateien konvertiert. Erstelle XML...")
+	fmt.Println("\n\nAll audio files have been converted to .wav! Creating XML...")
 
 	// WSources XML erstellen
 	sources := ExternalSourcesList{
@@ -255,38 +251,38 @@ func main() {
 	wsourcesPath := filepath.Join(execDir, "list.wsources")
 	xmlData, err := xml.MarshalIndent(sources, "", "  ")
 	if err != nil {
-		printMessage(fmt.Sprintf("Fehler beim Erstellen der XML-Daten: %v", err))
+		printMessage(fmt.Sprintf("ERROR: Could not create XML file: %v", err))
 		os.Exit(1)
 	}
 	os.WriteFile(wsourcesPath, []byte(xml.Header+string(xmlData)), 0644)
 	defer os.Remove(wsourcesPath)
 
-	printMessage("Starte Wwise Konvertierung...")
+	printMessage("Starting to convert files to .wem...")
 
 	// Wwise Konvertierung
 	cmd := exec.Command(config.WwisePath, "convert-external-source",
 		filepath.Join(execDir, config.ProjectName, config.ProjectName+".wproj"),
 		"--source-file", wsourcesPath,
-		"--output", execDir,
+		"--output", filepath.Join(execDir, "..", "..", "tmp"),
 		"--quiet")
 
 	// Pipe für die Standardausgabe erstellen
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		printMessage(fmt.Sprintf("Fehler beim Erstellen der Stdout-Pipe: %v", err))
+		printMessage(fmt.Sprintf("ERROR: Could not create Stdout-Pipe: %v", err))
 		return
 	}
 
 	// Pipe für die Fehlerausgabe erstellen
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		printMessage(fmt.Sprintf("Fehler beim Erstellen der Stderr-Pipe: %v", err))
+		printMessage(fmt.Sprintf("ERROR: Could not create Stderr-Pipe: %v", err))
 		return
 	}
 
 	// Kommando im Hintergrund starten
 	if err := cmd.Start(); err != nil {
-		printMessage(fmt.Sprintf("Fehler beim Starten der Wwise Konvertierung: %v", err))
+		printMessage(fmt.Sprintf("Error: Could not start converting files: %v", err))
 		return
 	}
 
@@ -300,7 +296,7 @@ func main() {
 			case <-done:
 				return
 			default:
-				fmt.Printf("\rKonvertierung läuft... %s", spinner[i])
+				fmt.Printf("\rConverting files... %s", spinner[i])
 				i = (i + 1) % len(spinner)
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -325,13 +321,13 @@ func main() {
 	// Auf Beendigung warten
 	if err := cmd.Wait(); err != nil {
 		done <- true
-		printMessage(fmt.Sprintf("\n\rFehler bei der Wwise Konvertierung: %v", err))
+		printMessage(fmt.Sprintf("\n\rERROR: Could not convert .wav files: %v", err))
 	} else {
 		done <- true
-		printMessage(fmt.Sprintf("\n\rWwise Konvertierung erfolgreich abgeschlossen!"))
+		printMessage(fmt.Sprintf("\n\rSuccessfully converted all files to .wem!"))
 	}
 
 	// Berechne die Gesamtzeit
-	gesamtZeit := time.Since(startZeit)
-	fmt.Printf("\nGesamtzeit: %s\n", gesamtZeit)
+	timeTotal := time.Since(timeStart)
+	fmt.Printf("\nTime total: %s\n", timeTotal)
 }

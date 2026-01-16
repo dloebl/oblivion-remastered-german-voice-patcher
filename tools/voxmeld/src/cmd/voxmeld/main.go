@@ -3,47 +3,410 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"io/fs"
-	"path/filepath"
-	"strings"
-	"sync"
-	"sync/atomic"
-
-	//	"fmt"
+	"errors"
 	"fmt"
 	"log"
 	"os"
-	"runtime"
+	"path/filepath"
 	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"runtime"
 	"time"
 )
 
-var VERSION = "v0.4.3"
+var animationsStop chan struct{}
+var animationsCounter int
 
-// Globale Variable für übersprungene BNK-Dateien
-var totalSkippedBnks int32
+var fileMutex sync.Mutex
+var progressMutex sync.Mutex
 
-// Neue globale Variable für erstellte BNK-Dateien
-var totalCreatedBnks int32
+var logger *log.Logger
+var logFile *os.File
+
+func main() {
+	// Get time
+	timeStart := time.Now()
+
+	setupLogging()
+	defer logFile.Close()
+
+	wemFolder := "tmp/wem"
+	bnkFolder := "tmp/bnk"
+	pakFolder := "tmp/pak"
+
+	// Gib das aktuelle Arbeitsverzeichnis aus
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		log.Printf("Working directory: %s", workingDirectory)
+	}
+
+	// Erstelle die Ausgabeverzeichnisse
+	createOutputDirs(bnkFolder)
+
+	processFiles(wemFolder, bnkFolder, pakFolder, timeStart)
+}
+func setupLogging() {
+	// Erstelle Log-Verzeichnis, wenn es nicht existiert
+	err := os.MkdirAll("logs", 0755)
+	if err != nil {
+		fmt.Printf("ERROR: Could not create logs folder: %v\n", err)
+		return
+	}
+
+	// Öffne die Log-Datei
+	logFile, err = os.OpenFile("logs/Missing-bnks-for-wem.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		fmt.Printf("ERROR: Could not open log file: %v\n", err)
+		return
+	}
+
+	// Initialisiere den Logger
+	logger = log.New(logFile, "", log.LstdFlags)
+}
+
+// Function for logging missing wem files
+func logMissingFile(message string) {
+	if logger != nil {
+		logger.Println(message)
+	}
+}
 
 // Verzeichnisse erstellen, die im Shell-Script definiert sind
-func createOutputDirs() {
+func createOutputDirs(outputDir string) {
 	dirs := []string{
-		"german-voices-oblivion-remastered-voxmeld_" + VERSION + "_P/Content/WwiseAudio/Event/English(US)/",
-		"german-voices-oblivion-remastered-voxmeld_" + VERSION + "_P/Content/WwiseAudio/Media/English(US)/",
+		outputDir + "/Content/WwiseAudio/Event/English(US)/",
+		outputDir + "/Content/WwiseAudio/Media/English(US)/",
 	}
 
 	for _, dir := range dirs {
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
-			log.Printf("Warnung: Konnte Verzeichnis nicht erstellen: %s (err: %v)", dir, err)
+			log.Printf("ERROR: Could not create directory %s (err: %v)", dir, err)
 		}
 	}
 }
 
-func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string, isVideo string) {
+// updateAnimatedProgressBar stellt einen animierten Fortschrittsbar in der Konsole dar
+func updateAnimatedProgressBar(currentProgress, amountTotal int, timeStart time.Time, animationsCounter int) {
+	width := 40 // Breite des Balkens in Zeichen
+
+	// Berechne Prozentsatz
+	percent := float64(currentProgress) / float64(amountTotal)
+
+	// Berechne Anzahl der filleden Zeichen
+	filled := int(percent * float64(width))
+
+	// Animations-Zeichen
+	animationSymbols := []string{"|", "/", "-", "\\"}
+	animationSymbol := animationSymbols[animationsCounter%len(animationSymbols)]
+
+	// ASCII-Ladebar Zeichen
+	filledChar := "#"
+
+	// Erstelle den Ladebar
+	bar := strings.Repeat(filledChar, filled) + strings.Repeat("-", width-filled)
+
+	// Erstelle einen eingebetteten Animations-Cursor im Ladebar
+	if filled < width {
+		position := filled
+		barRunes := []rune(bar)
+		barRunes[position] = []rune(animationSymbol)[0]
+		bar = string(barRunes)
+	}
+
+	// Lösche die aktuelle Zeile und zeige nur den Balken ohne verstrichene Zeit an
+	fmt.Printf("\r[%s] %3.0f%% %d/%d files processed",
+		bar, percent*100, currentProgress, amountTotal)
+}
+
+func processFiles(wemFolder string, bnkFolder string, pakFolder string, timeStart time.Time) {
+	var wg sync.WaitGroup
+	var totalFiles int
+	var processedFiles int32
+
+	maxParallelism := runtime.NumCPU() * 2
+	if maxParallelism > 16 {
+		maxParallelism = 16
+	}
+	semaphore := make(chan struct{}, maxParallelism)
+
+	// Wenn ein Argument übergeben wurde, verarbeite nur diese eine Datei
+	wems, err := filepath.Glob(filepath.Join(wemFolder, "*"))
+	if err != nil {
+		fmt.Printf("ERROR: Could not look up files in %s: %v", wemFolder, err)
+		return
+	}
+
+	if len(os.Args) > 1 {
+		wems = []string{os.Args[1]}
+	}
+
+	fmt.Printf("Counting .bnk files to create...")
+		
+	for _, wemPathWithType := range wems {
+		wemPath := strings.TrimSuffix(wemPathWithType, filepath.Ext(wemPathWithType))
+		comps := strings.Split(filepath.Base(wemPath), "_")
+
+		if len(comps) < 3 {
+			// Incorrect naming
+			logMissingFile(comps[0] + ".wem")
+			continue
+		}
+
+		// File is audio for video
+		if comps[0] == "scripted" {
+			bnkName := filepath.Base(wemPath)
+			bnkPath := filepath.Join(pakFolder, "OblivionRemastered/Content/WwiseAudio/Event", bnkName + ".bnk")
+		
+			_, err := os.ReadFile(bnkPath)
+			if err != nil {
+				logMissingFile(bnkName + ".wem")
+				continue
+			}
+
+			totalFiles++
+		} else {
+			raceComb := comps[0]
+
+			// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
+			if comps[1] != "f" && comps[1] != "m" {
+				raceComb += "_" + comps[1]
+			}
+
+			var races []string
+			var variants []string
+			races = append(races, raceComb)
+			switch raceComb {
+			case "argonian":
+				races = append(races, "khajiit")
+				break
+			case "high_elf":
+				races = append(races, "dark_elf")
+				races = append(races, "wood_elf")
+				break
+			case "imperial":
+				races = append(races, "breton")
+				break
+			case "nord":
+				races = append(races, "orc")
+				break
+			}
+			variants = append(variants, "")
+			variants = append(variants, "altvoice")
+			variants = append(variants, "beggar")
+
+			variantCounter := 0
+			originalFile := ""
+			for _, race := range races {
+				for _, variant := range variants {
+					variantComp := comps[1]
+					restComp := strings.Join(comps[2:], "_")
+					// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
+					if comps[1] != "f" && comps[1] != "m" {
+						variantComp = comps[2]
+						restComp = strings.Join(comps[3:], "_")
+					}
+
+					bnkName := race + "_" + variantComp + "_"
+					if variant != "" {
+						bnkName += variant + "_"
+					}
+					bnkName += restComp
+
+					// Save original file name for potentially missing files
+					if race == raceComb && variant == "" {
+						originalFile = bnkName
+					}
+
+					bnkPath := pakFolder + "/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_" + bnkName + ".bnk"
+				
+					_, err := os.ReadFile(bnkPath)
+					if err != nil {
+						// Check for '_sid' variant
+						bnkPath = pakFolder + "/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_" + bnkName + "_sid.bnk"
+					
+						_, err = os.ReadFile(bnkPath)
+						if err != nil {
+							variantCounter += 1
+							
+							if variantCounter == len(variants) * len(races){
+								logMissingFile(originalFile + ".wem")
+							}
+
+							continue
+						}
+					}
+
+					totalFiles++
+				}
+			}
+		}
+	}
+
+	// Show step
+	fmt.Printf("\n====================== VOXMELD ======================\n")
+	fmt.Printf("Source:     	%s\n", wemFolder)
+	fmt.Printf("Files:     	%d .wem files found\n", totalFiles)
+	fmt.Printf("Status:     	Start creating .bnk files\n")
+	fmt.Printf("-----------------------------------------------------\n")
+
+	// Start animation in the background
+	animationsStop = make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(250 * time.Millisecond)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				progressMutex.Lock()
+				animationsCounter++
+				updateAnimatedProgressBar(
+					int(atomic.LoadInt32(&processedFiles)),
+					totalFiles,
+					timeStart,
+					animationsCounter)
+				progressMutex.Unlock()
+			case <-animationsStop:
+				return
+			}
+		}
+	}()
+
+	for _, wemPathWithType := range wems {
+		wemPath := strings.TrimSuffix(wemPathWithType, filepath.Ext(wemPathWithType))
+		comps := strings.Split(filepath.Base(wemPath), "_")
+
+		if len(comps) < 3 {
+			// Incorrect naming
+			continue
+		}
+
+		// File is audio for video
+		if comps[0] == "scripted" {
+			bnkName := filepath.Base(wemPath)
+			bnkPath := filepath.Join(pakFolder, "OblivionRemastered/Content/WwiseAudio/Event", bnkName + ".bnk")
+		
+			bnk, err := os.ReadFile(bnkPath)
+			if err != nil {
+				continue
+			}
+
+			wg.Add(1)
+			semaphore <- struct{}{}
+
+			go func(file []byte, fileName, filePath, fileFolder, srcPath string, isVideo bool) {
+				defer wg.Done()
+				defer func() { <-semaphore }()
+
+				if err := create_bnk(file, fileName, filePath, fileFolder, srcPath, isVideo); err != nil {
+					fmt.Printf("Fehler beim Erstellen von %s : %v", fileName, err)
+				}
+				atomic.AddInt32(&processedFiles, 1)
+			}(bnk, bnkName, bnkPath, bnkFolder, wemPath, true)
+		} else {
+			raceComb := comps[0]
+
+			// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
+			if comps[1] != "f" && comps[1] != "m" {
+				raceComb += "_" + comps[1]
+			}
+
+			var races []string
+			var variants []string
+			races = append(races, raceComb)
+			switch raceComb {
+			case "argonian":
+				races = append(races, "khajiit")
+				break
+			case "high_elf":
+				races = append(races, "dark_elf")
+				races = append(races, "wood_elf")
+				break
+			case "imperial":
+				races = append(races, "breton")
+				break
+			case "nord":
+				races = append(races, "orc")
+				break
+			}
+			variants = append(variants, "")
+			variants = append(variants, "altvoice")
+			variants = append(variants, "beggar")
+
+			for _, race := range races {
+				for _, variant := range variants {
+					variantComp := comps[1]
+					restComp := strings.Join(comps[2:], "_")
+					// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
+					if comps[1] != "f" && comps[1] != "m" {
+						variantComp = comps[2]
+						restComp = strings.Join(comps[3:], "_")
+					}
+
+					bnkName := race + "_" + variantComp + "_"
+					if variant != "" {
+						bnkName += variant + "_"
+					}
+					bnkName += restComp
+					bnkPath := pakFolder + "/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_" + bnkName + ".bnk"
+				
+					bnk, err := os.ReadFile(bnkPath)
+					if err != nil {
+						// Check for '_sid' variant
+						bnkPath = pakFolder + "/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_" + bnkName + "_sid.bnk"
+					
+						bnk, err = os.ReadFile(bnkPath)
+						if err != nil {
+							continue
+						}
+					}
+
+					wg.Add(1)
+					semaphore <- struct{}{}
+
+					go func(file []byte, fileName, filePath, fileFolder, srcPath string, isVideo bool) {
+						defer wg.Done()
+						defer func() { <-semaphore }()
+
+						if err := create_bnk(file, fileName, filePath, fileFolder, srcPath, isVideo); err != nil {
+							fmt.Printf("Fehler beim Erstellen von %s : %v", fileName, err)
+						}
+						atomic.AddInt32(&processedFiles, 1)
+					}(bnk, bnkName, bnkPath, bnkFolder, wemPath, false)
+				}
+			}
+		}
+	}
+	
+	wg.Wait()
+
+	// Animationsschleife stoppen
+	close(animationsStop)
+	time.Sleep(200 * time.Millisecond) // Kurz warten, damit die Animation sauber beendet wird
+
+	// Zeige finalen Fortschrittsbar
+	progressMutex.Lock()
+	updateAnimatedProgressBar(
+		int(atomic.LoadInt32(&processedFiles)),
+		totalFiles,
+		timeStart,
+		animationsCounter)
+	progressMutex.Unlock()
+
+	// Calculate time total
+	timeTotal := time.Since(timeStart)
+	fmt.Printf("\n\nAll .bnk files have been created in %s\n", timeTotal)
+}
+
+func create_bnk(bnk []byte, bnkName string, bnkPath string, bnkFolder string, wemPath string, isVideo bool) error {
+	fileMutex.Lock()
+	defer fileMutex.Unlock()
+
 	pattern := []byte{0x01, 0x00, 0x14, 0x00} // Codec: OPUS_WEM
-	if isVideo == "true" {
+	if isVideo == true {
 		pattern = []byte{0x01, 0x00, 0x01, 0x00} // Codec: PCM
 	}
 	newCodec := []byte{0x01, 0x00, 0x04, 0x00} // Codec: VORBIS
@@ -53,7 +416,7 @@ func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string, isVi
 	if pos == -1 {
 		pos = bytes.Index(bnk, newCodec)
 		if pos == -1 {
-			log.Fatalf("Pattern not found")
+			return fmt.Errorf("Pattern not found: %s", bnkName)
 		}
 	}
 	// Read the values that we need
@@ -72,7 +435,7 @@ func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string, isVi
 	// Get size of the .wem file
 	wemInfo, err := os.Stat(wemPath + ".wem")
 	if err != nil {
-		log.Fatalf("Failed to read .wem file: %v\n", err)
+		return fmt.Errorf("Failed to read .wem file: %v", err)
 	}
 	wemSize := uint32(wemInfo.Size())
 	// Update the codex to VORBIS
@@ -80,292 +443,32 @@ func create_bnk(bnkName string, bnkPath string, bnk []byte, wemPath string, isVi
 	// Update file size (4 bytes after dummy byte and ID)
 	fileSizeOffset := pos + 9
 	if fileSizeOffset+4 > len(bnk) {
-		log.Fatalf("Not enough data to update file size in .bnk")
+		return errors.New("Not enough data to update file size in .bnk")
 	}
 	binary.LittleEndian.PutUint32(bnk[fileSizeOffset:fileSizeOffset+4], wemSize)
 	// write the modified .bnk file to the output folder
-	outBnkPath := "german-voices-oblivion-remastered-voxmeld_" + VERSION + "_P/Content/WwiseAudio/Event/English(US)/" + filepath.Base(bnkPath)
-	if isVideo == "true" {
-		outBnkPath = "german-voices-oblivion-remastered-voxmeld_" + VERSION + "_P/Content/WwiseAudio/Event/" + filepath.Base(bnkPath)
+	outBnkPath := filepath.Join(bnkFolder, "Content/WwiseAudio/Event/English(US)", filepath.Base(bnkPath))
+	if isVideo == true {
+		outBnkPath = filepath.Join(bnkFolder, "Content/WwiseAudio/Event", filepath.Base(bnkPath))
 	}
 	err = os.WriteFile(outBnkPath, bnk, 0644)
 	if err != nil {
-		log.Fatalf("Failed to write modified .bnk file: %v\n", err)
+		return fmt.Errorf("Failed to write modified .bnk file: %v", err)
 	}
 	//fmt.Printf("Modified .bnk file written to: %s\n", outBnkPath)
 	// write the .wem file to output folder
 	wem, err := os.ReadFile(wemPath + ".wem")
 	if err != nil {
-		log.Fatalf("Failed to read .wem file: %v\n", err)
+		return fmt.Errorf("Failed to read .wem file: %v", err)
 	}
-	outWemPath := "german-voices-oblivion-remastered-voxmeld_" + VERSION + "_P/Content/WwiseAudio/Media/English(US)/" + strconv.Itoa(int(id)) + ".wem"
-	if isVideo == "true" {
-		outWemPath = "german-voices-oblivion-remastered-voxmeld_" + VERSION + "_P/Content/WwiseAudio/Media/" + strconv.Itoa(int(id)) + ".wem"
+	outWemPath := filepath.Join(bnkFolder, "Content/WwiseAudio/Media/English(US)", strconv.Itoa(int(id)) + ".wem")
+	if isVideo == true {
+		outWemPath = filepath.Join(bnkFolder, "Content/WwiseAudio/Media", strconv.Itoa(int(id)) + ".wem")
 	}
 	err = os.WriteFile(outWemPath, wem, 0644)
 	if err != nil {
-		log.Fatalf("Failed to write .wem file: %v\n", err)
+		return fmt.Errorf("Failed to write .wem file: %v", err)
 	}
 
-	// Zähler für erstellte BNK-Dateien erhöhen
-	atomic.AddInt32(&totalCreatedBnks, 1)
-}
-
-// TODO: Bekommt eine WEM datei und schaut ob deren Name zum zusammenstellen eines pfade zu einer BNK Datei benutzt werden kann.
-func processWemFile(wemPath string) {
-	comps := strings.Split(filepath.Base(wemPath), "_")
-
-	// Zähler für übersprungene BNK-Dateien
-	skippedBnks := 0
-
-	// File is audio for video
-	if comps[0] == "scripted" {
-		bnkName := filepath.Base(wemPath)
-
-		bnkPath := "tmp/pak/OblivionRemastered/Content/WwiseAudio/Event/" + bnkName + ".bnk"
-		// Log-Ausgabe entfernen
-		// log.Println("File:", bnkPath)
-
-		bnk, err := os.ReadFile(bnkPath)
-		if err != nil {
-			// Log-Ausgabe entfernen
-			// log.Printf("Skipping missing BNK: %s (err: %v)", bnkPath, err)
-			skippedBnks++
-			return
-		}
-
-		create_bnk(bnkName, bnkPath, bnk, wemPath, "true")
-	} else {
-		raceComb := comps[0]
-
-		// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
-		if comps[1] != "f" && comps[1] != "m" {
-			raceComb += "_" + comps[1]
-		}
-
-		var races []string
-		var variants []string
-		races = append(races, raceComb)
-		switch raceComb {
-		case "argonian":
-			races = append(races, "khajiit")
-			break
-		case "high_elf":
-			races = append(races, "dark_elf")
-			races = append(races, "wood_elf")
-			break
-		case "imperial":
-			races = append(races, "breton")
-			break
-		case "nord":
-			races = append(races, "orc")
-			break
-		}
-		variants = append(variants, "")
-		variants = append(variants, "altvoice")
-		variants = append(variants, "beggar")
-
-		for _, race := range races {
-			for _, variant := range variants {
-				variantComp := comps[1]
-				restComp := strings.Join(comps[2:], "_")
-				// Case for high_elf, dark_seducer and holy_saint as they have an underscore in their name
-				if comps[1] != "f" && comps[1] != "m" {
-					variantComp = comps[2]
-					restComp = strings.Join(comps[3:], "_")
-				}
-
-				bnkName := race + "_" + variantComp + "_"
-				if variant != "" {
-					bnkName += variant + "_"
-				}
-				bnkName += restComp
-
-				bnkPath := "tmp/pak/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_" + bnkName + ".bnk"
-				// Log-Ausgabe entfernen
-				// log.Println("File:", bnkPath)
-
-				bnk, err := os.ReadFile(bnkPath)
-				if err != nil {
-					bnkPath = "tmp/pak/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_" + bnkName + "_sid.bnk"
-					// Log-Ausgabe entfernen
-					// log.Printf("Skipping missing BNK: %s (err: %v)", bnkPath, err)
-					bnk, err = os.ReadFile(bnkPath)
-					if err != nil {
-						skippedBnks++
-						continue
-					}
-				}
-				create_bnk(bnkName, bnkPath, bnk, wemPath, "false")
-			}
-		}
-	}
-
-	// Globalen Zähler für übersprungene BNKs aktualisieren
-	if skippedBnks > 0 {
-		atomic.AddInt32(&totalSkippedBnks, int32(skippedBnks))
-	}
-}
-
-// zeichneAnimiertenFortschrittsbalken stellt einen animierten Fortschrittsbalken in der Konsole dar
-func zeichneAnimiertenFortschrittsbalken(aktuellerFortschritt, gesamtAnzahl int, startZeit time.Time, animationsZähler int, skippedBnks int32) {
-	breite := 40 // Breite des Balkens in Zeichen
-
-	// Berechne Prozentsatz
-	prozent := float64(aktuellerFortschritt) / float64(gesamtAnzahl)
-
-	// Berechne Anzahl der gefüllten Zeichen
-	gefüllt := int(prozent * float64(breite))
-
-	// Animations-Zeichen
-	animationsSymbole := []string{"|", "/", "-", "\\"}
-	animationSymbol := animationsSymbole[animationsZähler%len(animationsSymbole)]
-
-	// ASCII-Ladebalken Zeichen
-	gefülltZeichen := "#"
-	leerZeichen := "-"
-
-	// Erstelle den Ladebalken
-	balken := strings.Repeat(gefülltZeichen, gefüllt) + strings.Repeat(leerZeichen, breite-gefüllt)
-
-	// Erstelle einen eingebetteten Animations-Cursor im Ladebalken
-	if gefüllt < breite {
-		position := gefüllt
-		balkenRunes := []rune(balken)
-		balkenRunes[position] = []rune(animationSymbol)[0]
-		balken = string(balkenRunes)
-	}
-
-	// Lösche die aktuelle Zeile und zeige den Balken an
-	fmt.Printf("\r[%s] %3.0f%% %d/%d WEMs | Erstellt: %d BNKs| Übersprungene: %d BNKs",
-		balken, prozent*100, aktuellerFortschritt, gesamtAnzahl,
-		atomic.LoadInt32(&totalCreatedBnks), skippedBnks)
-}
-
-func main() {
-	// Startzeit erfassen
-	startZeit := time.Now()
-
-	// Gib das aktuelle Arbeitsverzeichnis aus
-	aktuellesVerzeichnis, err := os.Getwd()
-	if err == nil {
-		log.Printf("Arbeitsverzeichnis: %s", aktuellesVerzeichnis)
-	}
-
-	// Erstelle die Ausgabeverzeichnisse
-	createOutputDirs()
-
-	// Wenn ein Argument übergeben wurde, verarbeite nur diese eine Datei
-	if len(os.Args) > 1 {
-		wemPath := os.Args[1]
-		processWemFile(wemPath)
-
-		// Zeige Gesamtzeit an
-		gesamtZeit := time.Since(startZeit)
-		fmt.Printf("\n\nVerarbeitung abgeschlossen in %s\n", gesamtZeit)
-		fmt.Printf("Erstellte BNK-Dateien: %d\n", atomic.LoadInt32(&totalCreatedBnks))
-		fmt.Printf("Übersprungene BNK-Dateien: %d\n", atomic.LoadInt32(&totalSkippedBnks))
-		return
-	}
-
-	// Prüfe, ob das Verzeichnis existiert, bevor es durchsucht wird
-	wemDir := "sound2wem/Windows/"
-	if _, err := os.Stat(wemDir); os.IsNotExist(err) {
-		log.Fatalf("Fehler: Verzeichnis %s existiert nicht im aktuellen Arbeitsverzeichnis %s",
-			wemDir, aktuellesVerzeichnis)
-	}
-
-	// Andernfalls durchsuche das Verzeichnis nach allen WEM-Dateien und verarbeite sie parallel
-	var wemFiles []string
-	err = filepath.WalkDir(wemDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasSuffix(path, ".wem") {
-			// Entferne die .wem-Endung, wie im Shell-Script
-			wemFiles = append(wemFiles, strings.TrimSuffix(path, ".wem"))
-		}
-		return nil
-	})
-	if err != nil {
-		log.Fatalf("Fehler beim Durchsuchen des Verzeichnisses: %v", err)
-	}
-
-	// Zeige Step an.
-	fmt.Printf("\n====================== VOXMELD ======================\n")
-	fmt.Printf("Quelle:      %s\n", wemDir)
-	fmt.Printf("Dateien:     %d WEM-Dateien gefunden\n", len(wemFiles))
-	fmt.Printf("Status:      Starte Konvertierung von WEM zu BNK\n")
-	fmt.Printf("-----------------------------------------------------\n")
-
-	// Fortschrittsbalken-Variablen
-	var erledigt int32
-	var fortschrittsMutex sync.Mutex
-	gesamtAnzahl := len(wemFiles)
-	var animationsZähler int
-
-	// Starte Animation im Hintergrund
-	animationsStopp := make(chan struct{})
-	go func() {
-		ticker := time.NewTicker(100 * time.Millisecond)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				fortschrittsMutex.Lock()
-				animationsZähler++
-				zeichneAnimiertenFortschrittsbalken(
-					int(atomic.LoadInt32(&erledigt)),
-					gesamtAnzahl,
-					startZeit,
-					animationsZähler,
-					atomic.LoadInt32(&totalSkippedBnks))
-				fortschrittsMutex.Unlock()
-			case <-animationsStopp:
-				return
-			}
-		}
-	}()
-
-	// Parallelisierung mit Worker-Pool
-	numWorkers := runtime.NumCPU() // Statt fester Anzahl 64 die Anzahl der CPU-Kerne verwenden
-	fmt.Printf("Verwende %d Worker-Threads (basierend auf CPU-Kernen)\n", numWorkers)
-	var wg sync.WaitGroup
-	semaphore := make(chan struct{}, numWorkers)
-
-	for _, wemPath := range wemFiles {
-		wg.Add(1)
-		semaphore <- struct{}{} // Blockiert, wenn alle Worker beschäftigt sind
-		go func(path string) {
-			defer wg.Done()
-			defer func() { <-semaphore }() // Worker freigeben
-			processWemFile(path)
-
-			// Aktualisiere Fortschrittsbalken
-			atomic.AddInt32(&erledigt, 1)
-		}(wemPath)
-	}
-
-	wg.Wait() // Warte auf Abschluss aller Worker
-
-	// Animationsschleife stoppen
-	close(animationsStopp)
-	time.Sleep(200 * time.Millisecond) // Kurz warten, damit die Animation sauber beendet wird
-
-	// Zeige finalen Fortschrittsbalken
-	fortschrittsMutex.Lock()
-	zeichneAnimiertenFortschrittsbalken(
-		gesamtAnzahl,
-		gesamtAnzahl,
-		startZeit,
-		animationsZähler,
-		atomic.LoadInt32(&totalSkippedBnks))
-	fortschrittsMutex.Unlock()
-
-	// Berechne die Gesamtzeit
-	gesamtZeit := time.Since(startZeit)
-	fmt.Printf("\n\nAlle Dateien verarbeitet in %s\n", gesamtZeit)
-	fmt.Printf("Erstellte BNK-Dateien: %d\n", atomic.LoadInt32(&totalCreatedBnks))
-	fmt.Printf("Übersprungene BNK-Dateien: %d\n", atomic.LoadInt32(&totalSkippedBnks))
+	return err
 }

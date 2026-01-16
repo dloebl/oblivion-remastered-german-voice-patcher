@@ -14,12 +14,12 @@ import (
 	"time"
 )
 
-// prüfeBsaarchExe sucht nach der BSArch.exe im Programmverzeichnis
-func prüfeBsaarchExe() (string, error) {
+// checkBsaarchExe sucht nach der BSArch.exe im Programmverzeichnis
+func checkBsaarchExe() (string, error) {
 	// Bestimme den Pfad des ausführenden Programms
 	exePath, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("konnte den Programmpfad nicht ermitteln: %w", err)
+		return "", fmt.Errorf("ERROR: Could not get directory of executable: %w", err)
 	}
 
 	// Bestimme das Verzeichnis des Programms
@@ -37,16 +37,16 @@ func prüfeBsaarchExe() (string, error) {
 	// Prüfe, ob die Datei existiert
 	_, err = os.Stat(bsaarchPath)
 	if os.IsNotExist(err) {
-		return "", fmt.Errorf("BSArch.exe wurde nicht im Programmverzeichnis gefunden: %s", exeDir)
+		return "", fmt.Errorf("ERROR: Could not find BSArch.exe at: %s", exeDir)
 	} else if err != nil {
-		return "", fmt.Errorf("fehler beim Überprüfen von BSArch.exe: %w", err)
+		return "", fmt.Errorf("ERROR: An error occured while checking BSArch.exe: %w", err)
 	}
 
 	// Führe einen einfachen Testbefehl aus, um die Funktionalität zu überprüfen
 	testCmd := exec.Command(bsaarchPath, "-h")
 	err = testCmd.Start()
 	if err != nil {
-		return "", fmt.Errorf("BSArch.exe kann nicht ausgeführt werden: %w", err)
+		return "", fmt.Errorf("ERROR: Can not excecute BSArch.exe: %w", err)
 	}
 	// Beende den Testprozess
 	testCmd.Process.Kill()
@@ -54,339 +54,336 @@ func prüfeBsaarchExe() (string, error) {
 	return bsaarchPath, nil
 }
 
-// extrahiereBsa führt die BSArch.exe aus und entpackt die angegebene BSA-Datei
-func extrahiereBsa(bsaarchPath, quelldatei, zielpfad string) error {
+// extractBsa führt die BSArch.exe aus und entpackt die angegebene BSA-Datei
+func extractBsa(bsaarchPath, srcFile, dstDirectory string) error {
 	// Bereite den Befehl vor
-	cmd := exec.Command(bsaarchPath, "unpack", quelldatei, zielpfad, "-mt")
+	cmd := exec.Command(bsaarchPath, "unpack", srcFile, dstDirectory, "-mt")
 
 	// Erfasse die Ausgabe
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("BSArch.exe Fehler: %w\nAusgabe: %s", err, string(output))
+		return fmt.Errorf("BSArch.exe Error: %w\nOutput: %s", err, string(output))
 	}
 
 	return nil
 }
 
-// zeichneAnimiertenFortschrittsbalken stellt einen animierten Fortschrittsbalken in der Konsole dar
-func zeichneAnimiertenFortschrittsbalken(aktuellerFortschritt, gesamtAnzahl int, startZeit time.Time, animationsZähler int) {
-	breite := 40 // Breite des Balkens in Zeichen
+// updateAniamtedProgressBar stellt einen animierten Fortschrittsbar in der Konsole dar
+func updateAniamtedProgressBar(currentProgress, amountTotal int, timeStart time.Time, animationCounter int) {
+	width := 40 // width of the bar in chars
 
-	// Berechne Prozentsatz
-	prozent := float64(aktuellerFortschritt) / float64(gesamtAnzahl)
+	// Berechne percentsatz
+	percent := float64(currentProgress) / float64(amountTotal)
 
-	// Berechne Anzahl der gefüllten Zeichen
-	gefüllt := int(prozent * float64(breite))
+	// Berechne Anzahl der filleden Zeichen
+	filled := int(percent * float64(width))
 
 	// Animations-Zeichen
-	animationsSymbole := []string{"|", "/", "-", "\\"}
-	animationSymbol := animationsSymbole[animationsZähler%len(animationsSymbole)]
+	animationSymbols := []string{"|", "/", "-", "\\"}
+	animationSymbol := animationSymbols[animationCounter%len(animationSymbols)]
 
-	// ASCII-Ladebalken Zeichen
-	gefülltZeichen := "#"
-	leerZeichen := "-"
+	// ASCII-Ladebar Zeichen
+	filledChars := "#"
 
-	// Erstelle den Ladebalken
-	balken := strings.Repeat(gefülltZeichen, gefüllt) + strings.Repeat(leerZeichen, breite-gefüllt)
+	// Erstelle den Ladebar
+	bar := strings.Repeat(filledChars, filled) + strings.Repeat("-", width-filled)
 
-	// Erstelle einen eingebetteten Animations-Cursor im Ladebalken
-	if gefüllt < breite {
-		position := gefüllt
-		balkenRunes := []rune(balken)
-		balkenRunes[position] = []rune(animationSymbol)[0]
-		balken = string(balkenRunes)
+	// Erstelle einen eingebetteten Animations-Cursor im Ladebar
+	if filled < width {
+		position := filled
+		barRunes := []rune(bar)
+		barRunes[position] = []rune(animationSymbol)[0]
+		bar = string(barRunes)
 	}
 
-	// Lösche die aktuelle Zeile und zeige den Balken an
-	fmt.Printf("\r[%s] %3.0f%% %d/%d Dateien extrahiert.", balken, prozent*100, aktuellerFortschritt, gesamtAnzahl)
+	// Lösche die aktuelle Zeile und zeige den bar an
+	fmt.Printf("\r[%s] %3.0f%% %d/%d files extracted.", bar, percent*100, currentProgress, amountTotal)
 }
 
 func main() {
-	// Startzeit erfassen
-	startZeit := time.Now()
+	// timeStart erfassen
+	timeStart := time.Now()
 
 	// Parse Kommandozeilenargumente
-	parallel := flag.Int("p", runtime.NumCPU(), "Anzahl der parallel zu verarbeitenden Dateien")
-	outputDir := flag.String("o", "", "Ausgabeverzeichnis für alle entpackten Dateien")
-	maxRetries := flag.Int("retries", 3, "Anzahl der Wiederholungsversuche für fehlgeschlagene Extraktionen")
+	parallel := flag.Int("p", runtime.NumCPU(), "Anzahl der parallel zu verarbeitenden Files")
+	outputDir := flag.String("o", "", "Ausgabeverzeichnis für alle entpackten Files")
+	maxRetries := flag.Int("retries", 3, "Anzahl der Wiederholungsversuche für failede Extraktionen")
 
-	// Definiere spezifische Ausgabeverzeichnisse für nummerierte Dateien
+	// Definiere spezifische Ausgabeverzeichnisse für nummerierte Files
 	maxDirs := 20 // Maximale Anzahl von spezifischen Ausgabeverzeichnissen
 	outputDirs := make([]*string, maxDirs)
 	for i := 1; i <= maxDirs; i++ {
-		outputDirs[i-1] = flag.String(fmt.Sprintf("o%d", i), "", fmt.Sprintf("Ausgabeverzeichnis für die %d. Datei", i))
+		outputDirs[i-1] = flag.String(fmt.Sprintf("o%d", i), "", fmt.Sprintf("Output directory for the %d. file", i))
 	}
 
 	flag.Parse()
 
-	// Überprüfe, ob Dateien angegeben wurden
-	dateien := flag.Args()
-	if len(dateien) == 0 {
-		fmt.Println("Fehler: Keine BSA-Dateien angegeben")
-		fmt.Println("Verwendung: bsa-multi.exe -o AUSGABEVERZEICHNIS [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
-		fmt.Println("Oder: bsa-multi.exe -o1 AUSGABEVERZEICHNIS1 -o2 AUSGABEVERZEICHNIS2 ... [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
+	// Überprüfe, ob Files angegeben wurden
+	files := flag.Args()
+	if len(files) == 0 {
+		fmt.Println("ERROR: No .bsa files given")
+		fmt.Println("Usage: bsa-multi.exe -o OUTPUT_DIRECTORY [-p AMOUNT_PARALLEL] FILE1.bsa FILE2.bsa ...")
+		fmt.Println("Or: bsa-multi.exe -o1 OUTPUT_DIRECTORY1 -o2 OUTPUT_DIRECTORY2 ... [-p AMOUNT_PARALLEL] FILE1.bsa FILE2.bsa ...")
 		os.Exit(1)
 	}
 
 	// Überprüfe Ausgabeverzeichnis(se)
-	hatAusgabeverzeichnis := false
+	hasOutputDirectory := false
 	if *outputDir != "" {
-		hatAusgabeverzeichnis = true
+		hasOutputDirectory = true
 	} else {
 		// Prüfe, ob spezifische Ausgabeverzeichnisse angegeben wurden
-		for i := 0; i < len(dateien) && i < maxDirs; i++ {
+		for i := 0; i < len(files) && i < maxDirs; i++ {
 			if *outputDirs[i] != "" {
-				hatAusgabeverzeichnis = true
+				hasOutputDirectory = true
 				break
 			}
 		}
 	}
 
-	if !hatAusgabeverzeichnis {
-		fmt.Println("Fehler: Kein Ausgabeverzeichnis angegeben (-o oder -o1, -o2, ...)")
-		fmt.Println("Verwendung: bsa-multi.exe -o AUSGABEVERZEICHNIS [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
-		fmt.Println("Oder: bsa-multi.exe -o1 AUSGABEVERZEICHNIS1 -o2 AUSGABEVERZEICHNIS2 ... [-p ANZAHL_PARALLEL] DATEI1.bsa DATEI2.bsa ...")
+	if !hasOutputDirectory {
+		fmt.Println("ERROR: No output directory given (-o or -o1, -o2, ...)")
+		fmt.Println("Usage: bsa-multi.exe -o OUTPUT_DIRECTORY [-p AMOUNT_PARALLEL] FILE1.bsa FILE2.bsa ...")
+		fmt.Println("Or: bsa-multi.exe -o1 OUTPUT_DIRECTORY1 -o2 OUTPUT_DIRECTORY2 ... [-p AMOUNT_PARALLEL] FILE1.bsa FILE2.bsa ...")
 		os.Exit(1)
 	}
 
 	// Überprüfe Dateierweiterungen
-	var gültigeDateien []string
-	var nichtExistierendeDateien []string
+	var validFiles []string
+	var skippedFiles []string
 
-	for _, datei := range dateien {
-		if filepath.Ext(datei) != ".bsa" {
-			fmt.Printf("Fehler: %s ist keine .bsa-Datei\n", datei)
-			fmt.Println("Dieses Programm akzeptiert nur Dateien mit der Endung .bsa")
+	for _, file := range files {
+		if filepath.Ext(file) != ".bsa" {
+			fmt.Printf("ERROR: %s is not a .bsa file\n", file)
+			fmt.Println("This tool only accepts .bsa files")
 			os.Exit(1)
 		}
 
 		// Prüfe, ob die Datei existiert
-		if _, err := os.Stat(datei); os.IsNotExist(err) {
-			fmt.Printf("Warnung: Datei %s existiert nicht. Diese wird übersprungen.\n", datei)
-			nichtExistierendeDateien = append(nichtExistierendeDateien, datei)
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			fmt.Printf("Warning: File %s was not found. Skipping.\n", file)
+			skippedFiles = append(skippedFiles, file)
 		} else {
-			gültigeDateien = append(gültigeDateien, datei)
+			validFiles = append(validFiles, file)
 		}
 	}
 
-	// Falls keine gültigen Dateien gefunden wurden
-	if len(gültigeDateien) == 0 {
-		fmt.Println("Fehler: Keine der angegebenen BSA-Dateien existiert")
+	// Falls keine gültigen Files gefunden wurden
+	if len(validFiles) == 0 {
+		fmt.Println("ERROR: None of the given .bsa files exist")
 		os.Exit(1)
 	}
 
-	// Aktualisiere die Liste der zu verarbeitenden Dateien
-	dateien = gültigeDateien
+	// Aktualisiere die Liste der zu verarbeitenden Files
+	files = validFiles
 
 	// Stelle sicher, dass alle nötigen Ausgabeverzeichnisse existieren
 	if *outputDir != "" {
 		if err := os.MkdirAll(*outputDir, 0755); err != nil {
-			fmt.Printf("Fehler beim Erstellen des Ausgabeverzeichnisses %s: %v\n", *outputDir, err)
+			fmt.Printf("ERROR: Could not create output directory %s: %v\n", *outputDir, err)
 			os.Exit(1)
 		}
 	}
 
-	for i := 0; i < len(dateien) && i < maxDirs; i++ {
+	for i := 0; i < len(files) && i < maxDirs; i++ {
 		if *outputDirs[i] != "" {
 			if err := os.MkdirAll(*outputDirs[i], 0755); err != nil {
-				fmt.Printf("Fehler beim Erstellen des Ausgabeverzeichnisses %s: %v\n", *outputDirs[i], err)
+				fmt.Printf("ERROR: Could not create output directory %s: %v\n", *outputDirs[i], err)
 				os.Exit(1)
 			}
 		}
 	}
 
 	// Finde BSArch.exe
-	bsaarchPath, err := prüfeBsaarchExe()
+	bsaarchPath, err := checkBsaarchExe()
 	if err != nil {
-		fmt.Printf("Fehler: %v\n", err)
-		fmt.Println("Bitte stellen Sie sicher, dass die BSArch.exe im selben Verzeichnis wie dieses Programm vorhanden ist.")
+		fmt.Printf("ERROR: %v\n", err)
+		fmt.Println("Please make sure BSArch.exe is in the same directory!")
 		os.Exit(1)
 	}
 
 	// Zeige Status an
 	fmt.Printf("\n====================== BSA-MULTI ======================\n")
-	fmt.Printf("BSArch:      %s\n", bsaarchPath)
-	fmt.Printf("Dateien:     %d BSA-Dateien gefunden\n", len(dateien))
-	fmt.Printf("Parallel:    %d Extraktionen gleichzeitig\n", *parallel)
-	fmt.Printf("Status:      Starte Extraktion der BSA-Dateien\n")
+	fmt.Printf("BSArch:     %s\n", bsaarchPath)
+	fmt.Printf("Files:     	%d .bsa files found\n", len(files))
+	fmt.Printf("Parallel:   %d extractions at the same time\n", *parallel)
+	fmt.Printf("Status:     Start extraction of .bsa files\n")
 	fmt.Printf("-------------------------------------------------------\n")
 
 	// Parallelverarbeitung einrichten
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, *parallel)
 
-	// Speichere Erfolge und Fehler
-	var erfolge []string
-	var fehler []string
+	// Speichere successful und Fehler
+	var successful []string
+	var errors []string
 	var mutex sync.Mutex // Schützt die Slices
 
-	// Fortschrittsbalken-Variablen
-	var erledigt int32
-	var fortschrittsMutex sync.Mutex
-	gesamtAnzahl := len(dateien)
-	var animationsZähler int
+	// Fortschrittsbar-Variablen
+	var processed int32
+	var progressMutex sync.Mutex
+	amountTotal := len(files)
+	var animationCounter int
 
-	// Verarbeite alle Dateien
-	prozessiereDateien := func(dateienZuVerarbeiten []string, dateienIndizes []int, istWiederholung bool) []string {
-		var fehlgeschlagen []string
+	processFiles := func(filesToProcess []string, fileIndices []int, isRetry bool) []string {
+		var failed []string
 
 		// Starte Animation im Hintergrund
-		animationsStopp := make(chan struct{})
+		animationsStop := make(chan struct{})
 		go func() {
-			ticker := time.NewTicker(100 * time.Millisecond)
+			ticker := time.NewTicker(250 * time.Millisecond)
 			defer ticker.Stop()
 
 			for {
 				select {
 				case <-ticker.C:
-					fortschrittsMutex.Lock()
-					animationsZähler++
-					zeichneAnimiertenFortschrittsbalken(int(atomic.LoadInt32(&erledigt)), gesamtAnzahl, startZeit, animationsZähler)
-					fortschrittsMutex.Unlock()
-				case <-animationsStopp:
+					progressMutex.Lock()
+					animationCounter++
+					updateAniamtedProgressBar(int(atomic.LoadInt32(&processed)), amountTotal, timeStart, animationCounter)
+					progressMutex.Unlock()
+				case <-animationsStop:
 					return
 				}
 			}
 		}()
 
-		for i, datei := range dateienZuVerarbeiten {
+		for i, file := range filesToProcess {
 			wg.Add(1)
-			go func(index int, dateiIndex int, dateiname string) {
-				defer wg.Done()
+			semaphore <- struct{}{}
 
-				// Semaphore erwerben
-				semaphore <- struct{}{}
+			go func(index int, fileIndex int, fileName string) {
+				defer wg.Done()
 				defer func() { <-semaphore }()
 
 				// Bestimme das Zielverzeichnis
-				zielverzeichnis := *outputDir
+				targetDirectory := *outputDir
 				// Wenn ein spezifisches Ausgabeverzeichnis für diese Datei vorhanden ist, verwende es
-				if dateiIndex < maxDirs && *outputDirs[dateiIndex] != "" {
-					zielverzeichnis = *outputDirs[dateiIndex]
+				if fileIndex < maxDirs && *outputDirs[fileIndex] != "" {
+					targetDirectory = *outputDirs[fileIndex]
 				}
 
 				// Führe Extraktion durch, aber nur wenn ein Zielverzeichnis definiert ist
-				if zielverzeichnis == "" {
+				if targetDirectory == "" {
 					mutex.Lock()
-					fehler = append(fehler, fmt.Sprintf("%s (kein Ausgabeverzeichnis angegeben)", dateiname))
-					if !istWiederholung {
-						fehlgeschlagen = append(fehlgeschlagen, dateiname)
+					errors = append(errors, fmt.Sprintf("%s (no output directory set)", fileName))
+					if !isRetry {
+						failed = append(failed, fileName)
 					}
 					mutex.Unlock()
 				} else {
-					err := extrahiereBsa(bsaarchPath, dateiname, zielverzeichnis)
+					err := extractBsa(bsaarchPath, fileName, targetDirectory)
 
 					// Ergebnis speichern (thread-sicher)
 					mutex.Lock()
 
 					if err != nil {
-						fehler = append(fehler, fmt.Sprintf("%s (%v)", dateiname, err))
-						if !istWiederholung {
-							fehlgeschlagen = append(fehlgeschlagen, dateiname)
+						errors = append(errors, fmt.Sprintf("%s (%v)", fileName, err))
+						if !isRetry {
+							failed = append(failed, fileName)
 						}
 					} else {
-						erfolge = append(erfolge, fmt.Sprintf("%s -> %s", dateiname, zielverzeichnis))
+						successful = append(successful, fmt.Sprintf("%s -> %s", fileName, targetDirectory))
 					}
 
 					mutex.Unlock()
 				}
 
-				// Aktualisiere Fortschrittsbalken
-				atomic.AddInt32(&erledigt, 1)
-			}(i, dateienIndizes[i], datei)
+				// Aktualisiere Fortschrittsbar
+				atomic.AddInt32(&processed, 1)
+			}(i, fileIndices[i], file)
 		}
 
 		// Warte auf Abschluss aller Extraktionen
 		wg.Wait()
 
 		// Animationsschleife stoppen
-		close(animationsStopp)
+		close(animationsStop)
 		time.Sleep(200 * time.Millisecond) // Kurz warten, damit die Animation sauber beendet wird
 
-		return fehlgeschlagen
+		return failed
 	}
 
-	// Erste Durchführung mit allen Dateien
-	dateienIndizes := make([]int, len(dateien))
-	for i := range dateienIndizes {
-		dateienIndizes[i] = i
+	// Erste Durchführung mit allen Files
+	fileIndices := make([]int, len(files))
+	for i := range fileIndices {
+		fileIndices[i] = i
 	}
 
-	fehlgeschlagen := prozessiereDateien(dateien, dateienIndizes, false)
+	failed := processFiles(files, fileIndices, false)
 
-	// Wiederholungsversuche für fehlgeschlagene Dateien
-	wiederholungszähler := 0
-	for wiederholungszähler < *maxRetries && len(fehlgeschlagen) > 0 {
-		wiederholungszähler++
-		fmt.Printf("\n\nFehler bei %d Dateien festgestellt. Warte 3 Sekunden vor dem Wiederholungsversuch...\n",
-			len(fehlgeschlagen))
+	// Wiederholungsversuche für failede Files
+	repeatCounter := 0
+	for repeatCounter < *maxRetries && len(failed) > 0 {
+		repeatCounter++
+		fmt.Printf("\n\nError for %d files have been detected. Wait 3 seconds before trying again...\n",
+			len(failed))
 
 		// Warte 3 Sekunden vor dem Wiederholungsversuch
 		for countdown := 3; countdown > 0; countdown-- {
-			fmt.Printf("\rWiederholungsversuch startet in %d Sekunden...", countdown)
+			fmt.Printf("\rRetry attempt starts in %d seconds...", countdown)
 			time.Sleep(1 * time.Second)
 		}
 
-		fmt.Printf("\rWiederholungsversuch %d von %d für %d fehlgeschlagene Dateien...\n",
-			wiederholungszähler, *maxRetries, len(fehlgeschlagen))
+		fmt.Printf("\rRetry attempt %d of %d for %d failed files...\n",
+			repeatCounter, *maxRetries, len(failed))
 
-		// Zurücksetzen des Fortschrittsbalkens für die Wiederholungsversuche
-		erledigt = 0
-		gesamtAnzahl = len(fehlgeschlagen)
+		// Zurücksetzen des Fortschrittsbars für die Wiederholungsversuche
+		processed = 0
+		amountTotal = len(failed)
 
 		// Erstelle die entsprechenden Indizes
-		fehlgeschlagenIndizes := make([]int, len(fehlgeschlagen))
-		for i, fehlDatei := range fehlgeschlagen {
-			for j, originalDatei := range dateien {
-				if fehlDatei == originalDatei {
-					fehlgeschlagenIndizes[i] = j
+		failedIndizes := make([]int, len(failed))
+		for i, failedFile := range failed {
+			for j, originalFile := range files {
+				if failedFile == originalFile {
+					failedIndizes[i] = j
 					break
 				}
 			}
 		}
 
-		// Führe die fehlgeschlagenen Dateien erneut aus
-		fehlgeschlagen = prozessiereDateien(fehlgeschlagen, fehlgeschlagenIndizes, true)
+		// Führe die faileden Files erneut aus
+		failed = processFiles(failed, failedIndizes, true)
 	}
 
-	// Zeige finalen Fortschrittsbalken
-	fortschrittsMutex.Lock()
-	zeichneAnimiertenFortschrittsbalken(gesamtAnzahl, gesamtAnzahl, startZeit, animationsZähler)
-	fortschrittsMutex.Unlock()
+	// Zeige finalen Fortschrittsbar
+	progressMutex.Lock()
+	updateAniamtedProgressBar(amountTotal, amountTotal, timeStart, animationCounter)
+	progressMutex.Unlock()
 
-	// Zeile nach Fortschrittsbalken
+	// Zeile nach Fortschrittsbar
 	fmt.Println("\n")
 
 	// Berechne die Gesamtzeit
-	gesamtZeit := time.Since(startZeit)
+	timeTotal := time.Since(timeStart)
 
 	// Zeige Zusammenfassung an
-	fmt.Println("\n=== Zusammenfassung ===")
+	fmt.Println("\n=== Result ===")
 
-	// Zeige übersprungene nicht existierende Dateien
-	if len(nichtExistierendeDateien) > 0 {
-		fmt.Printf("\nÜbersprungene nicht existierende Dateien (%d):\n", len(nichtExistierendeDateien))
-		for i, datei := range nichtExistierendeDateien {
-			fmt.Printf("%d. %s\n", i+1, datei)
+	// Zeige übersprungene nicht existierende Files
+	if len(skippedFiles) > 0 {
+		fmt.Printf("\nSkipped files (%d):\n", len(skippedFiles))
+		for i, file := range skippedFiles {
+			fmt.Printf("%d. %s\n", i+1, file)
 		}
 	}
 
-	fmt.Printf("Erfolgreich extrahierte Dateien (%d):\n", len(erfolge))
-	for i, datei := range erfolge {
-		fmt.Printf("%d. %s\n", i+1, datei)
+	fmt.Printf("Extracted files (%d):\n", len(successful))
+	for i, file := range successful {
+		fmt.Printf("%d. %s\n", i+1, file)
 	}
 
-	if len(fehler) > 0 {
-		fmt.Printf("\nFehlgeschlagene Extraktionen (%d):\n", len(fehler))
-		for i, datei := range fehler {
-			fmt.Printf("%d. %s\n", i+1, datei)
+	if len(errors) > 0 {
+		fmt.Printf("\nFailed files (%d):\n", len(errors))
+		for i, file := range errors {
+			fmt.Printf("%d. %s\n", i+1, file)
 		}
-		fmt.Printf("\nGesamtzeit: %s\n", gesamtZeit)
+		fmt.Printf("\nTime total: %s\n", timeTotal)
 
 		// Wenn nach allen Wiederholungsversuchen immer noch Fehler bestehen, pausiere das Programm
-		if len(fehlgeschlagen) > 0 {
-			fmt.Println("\n\nNach allen Wiederholungsversuchen bestehen immer noch Fehler.")
-			fmt.Println("Drücken Sie Enter, um das Programm zu beenden...")
+		if len(failed) > 0 {
+			fmt.Println("\n\nERROR: Could not process file.")
+			fmt.Println("Press Enter to close the programm...")
 
 			// Warte auf Benutzereingabe
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -394,12 +391,12 @@ func main() {
 
 		os.Exit(1)
 	} else {
-		if len(nichtExistierendeDateien) > 0 {
-			fmt.Println("\nAlle vorhandenen Extraktionen erfolgreich abgeschlossen!")
-			fmt.Printf("(Es wurden %d nicht existierende Dateien übersprungen)\n", len(nichtExistierendeDateien))
+		if len(skippedFiles) > 0 {
+			fmt.Println("\nSuccessfully extracted all files!")
+			fmt.Printf("(%d files were skipped)\n", len(skippedFiles))
 		} else {
-			fmt.Println("\nAlle Extraktionen erfolgreich abgeschlossen!")
+			fmt.Println("\nSuccessfully extracted all files!")
 		}
-		fmt.Printf("Gesamtzeit: %s\n", gesamtZeit)
+		fmt.Printf("Time total: %s\n", timeTotal)
 	}
 }
