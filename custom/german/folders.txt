@@ -1,0 +1,8 @@
+::Structure:
+::localizedFolderName = englishFolderName
+argonier			    =	argonian
+dunkler verführer	    =	dark_seducer
+goldener heiliger	    =	golden_saint
+hochelf				    =	high_elf
+kaiserlicher		    =	imperial
+rothwardone			    =	redguard
