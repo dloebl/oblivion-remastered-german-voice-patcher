@@ -409,7 +409,7 @@ func create_bnk(bnk []byte, bnkName string, bnkPath string, bnkFolder string, we
 	if isVideo == true {
 		pattern = []byte{0x01, 0x00, 0x01, 0x00} // Codec: PCM
 	}
-	newCodec := []byte{0x01, 0x00, 0x04, 0x00} // Codec: VORBIS
+	newCodec := []byte{0x01, 0x00, 0x14, 0x00} // Codec: OPUS_WEM
 	// Find the pattern in the file:
 	// Quick and dirty approach to patch the BNKs
 	pos := bytes.Index(bnk, pattern)
@@ -438,7 +438,7 @@ func create_bnk(bnk []byte, bnkName string, bnkPath string, bnkFolder string, we
 		return fmt.Errorf("Failed to read .wem file: %v", err)
 	}
 	wemSize := uint32(wemInfo.Size())
-	// Update the codex to VORBIS
+	// Update the codex to OPUS_WEM
 	copy(bnk[pos:pos+4], newCodec)
 	// Update file size (4 bytes after dummy byte and ID)
 	fileSizeOffset := pos + 9
