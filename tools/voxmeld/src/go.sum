@@ -1,4 +1,2 @@
-github.com/dloebl/wemenc v0.0.0-20260511132849-fe650a954ba0 h1:Y7KMkTUeXMI5F6Lt/fy+J5OGi7nydkyl1ImJJnm6Lo8=
-github.com/dloebl/wemenc v0.0.0-20260511132849-fe650a954ba0/go.mod h1:z4dHbWtSkYOJ8hqrzjr+nJEe4I9O7X5/Jbux8TSvydA=
-github.com/dloebl/wemenc v0.0.0-20260511162021-03066e849237 h1:wcQpSKfpm0iJOsh82QrZq3tqbfVYYx3OlK7VOOrpPUw=
-github.com/dloebl/wemenc v0.0.0-20260511162021-03066e849237/go.mod h1:z4dHbWtSkYOJ8hqrzjr+nJEe4I9O7X5/Jbux8TSvydA=
+github.com/dloebl/wemenc v0.0.0-20260511163602-7cf2b8cc35b8 h1:XyF51AebwzxxoNGPFEzISLSEaVOdBOeET53QIM4Xppc=
+github.com/dloebl/wemenc v0.0.0-20260511163602-7cf2b8cc35b8/go.mod h1:z4dHbWtSkYOJ8hqrzjr+nJEe4I9O7X5/Jbux8TSvydA=
