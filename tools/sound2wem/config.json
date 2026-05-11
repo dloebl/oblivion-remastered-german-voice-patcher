@@ -1,6 +1,4 @@
 {
-    "wwisePath": "",
     "ffmpegPath": "",
-    "projectName": "wavtowemscript",
-    "conversion": "Vorbis Quality High"
+    "bitrate": "64k"
 }
