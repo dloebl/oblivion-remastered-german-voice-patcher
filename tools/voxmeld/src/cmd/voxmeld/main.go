@@ -160,7 +160,7 @@ func processFiles(wemFolder string, bnkFolder string, pakFolder string, timeStar
 			bnkName := filepath.Base(wemPath)
 			bnkPath := filepath.Join(pakFolder, "OblivionRemastered/Content/WwiseAudio/Event", bnkName + ".bnk")
 		
-			_, err := os.ReadFile(bnkPath)
+			_, err := os.Stat(bnkPath)
 			if err != nil {
 				logMissingFile(bnkName + ".wem")
 				continue
@@ -222,12 +222,12 @@ func processFiles(wemFolder string, bnkFolder string, pakFolder string, timeStar
 
 					bnkPath := pakFolder + "/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_" + bnkName + ".bnk"
 				
-					_, err := os.ReadFile(bnkPath)
+					_, err := os.Stat(bnkPath)
 					if err != nil {
 						// Check for '_sid' variant
 						bnkPath = pakFolder + "/OblivionRemastered/Content/WwiseAudio/Event/English(US)/Play_" + bnkName + "_sid.bnk"
 					
-						_, err = os.ReadFile(bnkPath)
+						_, err = os.Stat(bnkPath)
 						if err != nil {
 							variantCounter += 1
 							
@@ -284,6 +284,13 @@ func processFiles(wemFolder string, bnkFolder string, pakFolder string, timeStar
 			continue
 		}
 
+		// Read the .wem once here and hand the bytes to every BNK that uses
+		// it, instead of re-reading it inside create_bnk for each one.
+		wem, err := os.ReadFile(wemPath + ".wem")
+		if err != nil {
+			continue
+		}
+
 		// File is audio for video
 		if comps[0] == "scripted" {
 			bnkName := filepath.Base(wemPath)
@@ -297,15 +304,15 @@ func processFiles(wemFolder string, bnkFolder string, pakFolder string, timeStar
 			wg.Add(1)
 			semaphore <- struct{}{}
 
-			go func(file []byte, fileName, filePath, fileFolder, srcPath string, isVideo bool) {
+			go func(file []byte, fileName, filePath, fileFolder string, wemData []byte, isVideo bool) {
 				defer wg.Done()
 				defer func() { <-semaphore }()
 
-				if err := create_bnk(file, fileName, filePath, fileFolder, srcPath, isVideo); err != nil {
+				if err := create_bnk(file, fileName, filePath, fileFolder, wemData, isVideo); err != nil {
 					fmt.Printf("Fehler beim Erstellen von %s : %v", fileName, err)
 				}
 				atomic.AddInt32(&processedFiles, 1)
-			}(bnk, bnkName, bnkPath, bnkFolder, wemPath, true)
+			}(bnk, bnkName, bnkPath, bnkFolder, wem, true)
 		} else {
 			raceComb := comps[0]
 
@@ -367,15 +374,15 @@ func processFiles(wemFolder string, bnkFolder string, pakFolder string, timeStar
 					wg.Add(1)
 					semaphore <- struct{}{}
 
-					go func(file []byte, fileName, filePath, fileFolder, srcPath string, isVideo bool) {
+					go func(file []byte, fileName, filePath, fileFolder string, wemData []byte, isVideo bool) {
 						defer wg.Done()
 						defer func() { <-semaphore }()
 
-						if err := create_bnk(file, fileName, filePath, fileFolder, srcPath, isVideo); err != nil {
+						if err := create_bnk(file, fileName, filePath, fileFolder, wemData, isVideo); err != nil {
 							fmt.Printf("Fehler beim Erstellen von %s : %v", fileName, err)
 						}
 						atomic.AddInt32(&processedFiles, 1)
-					}(bnk, bnkName, bnkPath, bnkFolder, wemPath, false)
+					}(bnk, bnkName, bnkPath, bnkFolder, wem, false)
 				}
 			}
 		}
@@ -401,23 +408,36 @@ func processFiles(wemFolder string, bnkFolder string, pakFolder string, timeStar
 	fmt.Printf("\n\nAll .bnk files have been created in %s\n", timeTotal)
 }
 
-func create_bnk(bnk []byte, bnkName string, bnkPath string, bnkFolder string, wemPath string, isVideo bool) error {
+// Wwise codec ids as they appear in the BNK, preceded by 0x01 0x00.
+var (
+	codecOpus   = []byte{0x01, 0x00, 0x14, 0x00}
+	codecPcm    = []byte{0x01, 0x00, 0x01, 0x00}
+	codecVorbis = []byte{0x01, 0x00, 0x04, 0x00}
+)
+
+// create_bnk receives the .wem contents instead of a path. One .wem feeds up
+// to six BNKs (race alternatives x voice variants), so reading it per BNK
+// meant ~133k stat calls plus ~133k reads for ~48k files - all of it inside
+// the mutex below.
+func create_bnk(bnk []byte, bnkName string, bnkPath string, bnkFolder string, wem []byte, isVideo bool) error {
 	fileMutex.Lock()
 	defer fileMutex.Unlock()
 
-	pattern := []byte{0x01, 0x00, 0x14, 0x00} // Codec: OPUS_WEM
-	if isVideo == true {
-		pattern = []byte{0x01, 0x00, 0x01, 0x00} // Codec: PCM
-	}
-	newCodec := []byte{0x01, 0x00, 0x04, 0x00} // Codec: VORBIS
-	// Find the pattern in the file:
+	// mp32wem writes Wwise Opus, which is what the Remaster uses natively, so
+	// the codec field stays OPUS. Converting to Vorbis was only needed while
+	// Wwise did the encoding.
+	newCodec := codecOpus
+
+	// Find the codec field that is currently in the BNK.
 	// Quick and dirty approach to patch the BNKs
-	pos := bytes.Index(bnk, pattern)
-	if pos == -1 {
-		pos = bytes.Index(bnk, newCodec)
-		if pos == -1 {
-			return fmt.Errorf("Pattern not found: %s", bnkName)
+	pos := -1
+	for _, pattern := range [][]byte{codecOpus, codecPcm, codecVorbis} {
+		if pos = bytes.Index(bnk, pattern); pos != -1 {
+			break
 		}
+	}
+	if pos == -1 {
+		return fmt.Errorf("Pattern not found: %s", bnkName)
 	}
 	// Read the values that we need
 	//codec := bnk[pos : pos+4]
@@ -432,13 +452,8 @@ func create_bnk(bnk []byte, bnkName string, bnkPath string, bnkFolder string, we
 	fmt.Printf("File Size:  %d bytes\n", fileSize)
 	*/
 
-	// Get size of the .wem file
-	wemInfo, err := os.Stat(wemPath + ".wem")
-	if err != nil {
-		return fmt.Errorf("Failed to read .wem file: %v", err)
-	}
-	wemSize := uint32(wemInfo.Size())
-	// Update the codex to VORBIS
+	wemSize := uint32(len(wem))
+	// Update the codec field
 	copy(bnk[pos:pos+4], newCodec)
 	// Update file size (4 bytes after dummy byte and ID)
 	fileSizeOffset := pos + 9
@@ -451,16 +466,12 @@ func create_bnk(bnk []byte, bnkName string, bnkPath string, bnkFolder string, we
 	if isVideo == true {
 		outBnkPath = filepath.Join(bnkFolder, "Content/WwiseAudio/Event", filepath.Base(bnkPath))
 	}
-	err = os.WriteFile(outBnkPath, bnk, 0644)
+	err := os.WriteFile(outBnkPath, bnk, 0644)
 	if err != nil {
 		return fmt.Errorf("Failed to write modified .bnk file: %v", err)
 	}
 	//fmt.Printf("Modified .bnk file written to: %s\n", outBnkPath)
 	// write the .wem file to output folder
-	wem, err := os.ReadFile(wemPath + ".wem")
-	if err != nil {
-		return fmt.Errorf("Failed to read .wem file: %v", err)
-	}
 	outWemPath := filepath.Join(bnkFolder, "Content/WwiseAudio/Media/English(US)", strconv.Itoa(int(id)) + ".wem")
 	if isVideo == true {
 		outWemPath = filepath.Join(bnkFolder, "Content/WwiseAudio/Media", strconv.Itoa(int(id)) + ".wem")
