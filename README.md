@@ -10,13 +10,23 @@ https://discord.gg/TVfn6xkBhB
 - Further development of this mod will take place here on GitHub and mirrored to Nexus Mods: https://www.nexusmods.com/oblivionremastered/mods/1092
 
 # Requirements
-1. Install the Audiokinetic Wwise Launcher: https://www.audiokinetic.com/en/wwise/overview/. You'll have to create an Audiokinetic account for this. The free trial version is sufficient - you don't have to purchase a license for this to work
-2. Start the "Wwise Launcher", login and install the latest version of Wwise. You can unselect all optional features - we just need Wwise
+- Windows, plus enough free disk space for the temporary files
+- Keep the patcher in a short path such as `C:\obre-de\`. Windows caps paths at 260 characters and the extraction tools drop everything past that limit without reporting an error
+
+Wwise is no longer required. The patcher writes the Wwise Opus files itself using the bundled FFmpeg.
+
+# Audio settings
+Optional, both can be set in `config\settings.txt`:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `OPUS_BITRATE` | `96k` | Opus target bitrate. The sources are 64 kbit/s mono MP3, so more bits recover nothing - they only keep this encoding step from adding damage on top. Drives the mod size: 64k ≈ 3.9 GB, 96k ≈ 5.6 GB, 128k ≈ 7.6 GB |
+| `OPUS_GAIN_DB` | `-4.6` | Level correction. The German Oblivion was mastered louder than the Remaster - measured over 200 lines the German files run +4.75 dB hotter than their English counterparts, while the volume settings inside the BNKs are tuned for the English levels. Set to `0` to keep the original level |
 
 # Build steps and installation steps
 1. Run the "Create-Mod.bat" script
 2. Enter the paths the terminal asks you for and confirm them with 'Enter'
-3. Be patient. It takes about 60 minutes to build this mod.
+3. Be patient. Building the mod takes a while.
 4. Some errors like "panic: open [..]/Event/English(US)/Play_*.bnk are expected. As long as the patcher doesn't get stuck for multiple minutes without anything changing you don't ahve to worry.
 5. Install the mod by confirming the prompt at the end or copy the the files from the built "Mod\" folder to your installation of Oblivion Remastered
 6. Enjoy Oblivion Remastered with German voices!
