@@ -60,6 +60,36 @@ if exist "%CONFIG_FILE%" (
     call :throw_error "ERROR: No settings file found"
 )
 
+:: Audio settings, overridable from config\settings.txt.
+::
+:: OPUS_BITRATE: the sources are 64 kbit/s mono MP3, so more bits recover
+:: nothing - they only keep this second encoding stage from adding damage on
+:: top. Measured signal-to-distortion against the decoded source:
+:: 64k = 17.9 dB, 96k = 21.4 dB, 128k = 25.4 dB. Resulting mod .pak:
+:: 64k = 3.9 GB, 96k = 5.6 GB, 128k = 7.6 GB.
+if not defined OPUS_BITRATE set "OPUS_BITRATE=96k"
+
+:: OPUS_GAIN_DB: the German Oblivion was mastered louder than the Remaster.
+:: Measured over 200 randomly picked lines against their English counterparts,
+:: the German files run +4.75 dB (median +4.6) hotter and 92 % of them are
+:: louder. The volume settings inside the BNKs are tuned for the English
+:: levels and stay untouched, so without this correction German dialogue sits
+:: too hot against music and effects. Set to 0 to keep the original level.
+if not defined OPUS_GAIN_DB set "OPUS_GAIN_DB=-4.6"
+
+:: The deepest file this build creates sits about 155 characters below the
+:: patcher folder, e.g.
+::   tmp\bnk\Content\WwiseAudio\Event\English(US)\Play_<long name>.bnk
+:: Windows stops at MAX_PATH (260) and the extraction tools fail SILENTLY on
+:: everything that does not fit, leaving a partial mod behind with no error.
+set "PATH_LEN=0"
+for /f %%A in ('powershell -NoProfile -Command "'%~dp0'.Length" 2^>nul') do set "PATH_LEN=%%A"
+if !PATH_LEN! GTR 100 (
+    echo ERROR: The patcher path is !PATH_LEN! characters long, which is too deep.
+    echo        "%~dp0"
+    call :throw_error "Please move the patcher to a shorter path, for example C:\obre-de\"
+)
+
 :: Load amounts file
 if exist "%AMOUNTS_FILE%" (
     for /f "usebackq tokens=1,* delims==" %%A in ("%AMOUNTS_FILE%") do (
@@ -269,7 +299,9 @@ if !SUCCESSFUL_STEP! == 1 (
 if !SUCCESSFUL_STEP! == 2 (
     echo STEP: Extracting .pak file from Oblivion Remastered...
 
-    cmd /c .\tools\repak\repak.exe unpack "%OBRE_PAK%" -o "%EXTRACT_FOLDER_PAK_REMASTER%"
+    :: Only the WwiseAudio\Event tree is ever read from this extract, so there
+    :: is no reason to unpack all 241k entries of the ~4.8 GB game .pak.
+    cmd /c .\tools\repak\repak.exe unpack "%OBRE_PAK%" -o "%EXTRACT_FOLDER_PAK_REMASTER%" -i "OblivionRemastered/Content/WwiseAudio/Event"
 
     if not exist "%EXTRACT_FOLDER_PAK_REMASTER%" (
         call :throw_error "ERROR: Could not extract .pak file of Oblivion Remastered"
@@ -396,41 +428,18 @@ if !SUCCESSFUL_STEP! == 7 (
 if !SUCCESSFUL_STEP! == 8 (
     echo STEP: Converting files to .wem... 
 
-    :: Convert all MP3s to WEMs with Vorbis codec
-    cmd /c .\tools\sound2wem\sound2wem-go.exe "%CONVERT_FOLDER_TO_CONVERT%\*"
-
-    :: Rename folder for to wem
-    if exist "%CONVERT_FOLDER_WEM%\..\Windows" (
-        ren "%CONVERT_FOLDER_WEM%\..\Windows" "wem"
-    )
+    :: Convert all MP3s to Wwise Opus WEMs. No Wwise installation needed and
+    :: no detour over ~48k intermediate .wav files.
+    :: "-gain=-4.6" needs the equals sign - "-gain -4.6" would make the flag
+    :: parser read the negative value as the next flag.
+    cmd /c .\tools\voxmeld\mp32wem.exe -out="%CONVERT_FOLDER_WEM%" -bitrate=%OPUS_BITRATE% -gain=%OPUS_GAIN_DB% "%CONVERT_FOLDER_TO_CONVERT%\*"
 
     if exist "%CONVERT_FOLDER_WEM%" (
         set AMOUNT_WEM_AFTER=0
         for /f %%A in ('dir /a-d /b "%CONVERT_FOLDER_WEM%" 2^>nul ^| find /v /c ""') do set AMOUNT_WEM_AFTER=%%A
 
         if !AMOUNT_WEM_AFTER! EQU 0 (
-            set AMOUNT_WAV_AFTER=0
-            if exist "%CONVERT_FOLDER_WAV%" (
-                for /f %%A in ('dir /a-d /b "%CONVERT_FOLDER_WAV%" 2^>nul ^| find /v /c ""') do set AMOUNT_WAV_AFTER=%%A
-				
-				if !AMOUNT_WAV_AFTER! EQU 0 (
-					call :throw_error "ERROR: Could not create .wav files"
-				)
-
-				if !AMOUNT_WAV_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
-                    if "!IGNORE_MISMATCH!" == "true" (
-                        echo INFO: Incorrect amount of .wav files found.
-                        echo INFO: Will continue since 'ignore mismatch' setting is enabled
-                    ) else (
-                        echo ERROR: !AMOUNT_WAV_AFTER! .wav files does not match the expected amount
-					    call :throw_error "This probably means that there was an error while converting a file"
-                    )
-				)
-
-				call :throw_error "ERROR: An unknown error occured while converting .wav files"
-            ) else (
-				call :throw_error "ERROR: Could not find wav folder"
-			) 
+            call :throw_error "ERROR: Could not create .wem files"
         )
 
         if !AMOUNT_WEM_AFTER! NEQ !EXPECTED_AMOUNT_AUDIOS! (
